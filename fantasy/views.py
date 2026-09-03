@@ -912,11 +912,22 @@ def profile_view(request):
         if action == 'update_profile':
             u_form = UserUpdateForm(request.POST, instance=user)
             p_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
+
+            # معالجة رفع الصورة مباشرة وضمان حفظها في Cloudinary
+            if 'avatar' in request.FILES:
+                profile.avatar = request.FILES['avatar']
+                profile.save()
+
             if u_form.is_valid() and p_form.is_valid():
                 u_form.save()
                 p_form.save()
                 messages.success(request, 'تم تحديث البيانات الشخصية والصورة بنجاح!')
                 return redirect('profile')
+            else:
+                # في حال وجود خطأ في الفاليديشن للبيانات النصية، تظل الصورة محفوظة
+                if 'avatar' in request.FILES:
+                    messages.success(request, 'تم تحديث الصورة بنجاح!')
+                    return redirect('profile')
 
         elif action == 'change_password':
             pass_form = PasswordChangeForm(user, request.POST)
@@ -955,6 +966,7 @@ def profile_view(request):
         'leagues_count': user_teams.count(),
     }
     return render(request, 'profile.html', context)
+
 
 
 @login_required
