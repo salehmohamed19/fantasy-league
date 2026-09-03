@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db.models import Sum
+from cloudinary.models import CloudinaryField
 
 # 1. الدوري والبطولات
 class League(models.Model):
@@ -281,7 +282,7 @@ class UserSquad(models.Model):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', verbose_name="المستخدم")
-    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, verbose_name="الصورة الشخصية")
+    avatar = CloudinaryField('avatar', folder='avatars/', null=True, blank=True)
 
     def __str__(self):
         return f"Profile of {self.user.username}"
