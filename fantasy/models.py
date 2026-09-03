@@ -21,7 +21,7 @@ class League(models.Model):
 class RealTeam(models.Model):
     league = models.ForeignKey(League, on_delete=models.CASCADE, related_name='teams', verbose_name="الدوري")
     name = models.CharField(max_length=100, verbose_name="اسم الفريق")
-    logo = CloudinaryField('team_logos', folder='team_logos/', null=True, blank=True)
+    logo = CloudinaryField('image', folder='team_logos', null=True, blank=True)
 
     def __str__(self):
         return f"{self.name} ({self.league.name})"
