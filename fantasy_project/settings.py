@@ -94,7 +94,14 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # Static Files
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# مسارات البحث عن الملفات الثابتة في الجذر
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+# محرك تخزين مرن للملفات الثابتة يمنع مشاكل اختفاء الصور واللوجو
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Media Files Config
 MEDIA_URL = '/media/'
