@@ -21,8 +21,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     
     # Cloudinary storage app MUST be before staticfiles
-    'cloudinary_storage',
     'django.contrib.staticfiles',
+    'cloudinary_storage',
+    
     'cloudinary',
     
     'fantasy',
