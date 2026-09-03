@@ -1,0 +1,685 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .pitch-card {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        width: 70px !important;
+        position: relative !important;
+    }
+
+    @media (min-width: 400px) {
+        .pitch-card {
+            width: 80px !important;
+        }
+    }
+
+    @media (min-width: 640px) {
+        .pitch-card {
+            width: 100px !important;
+        }
+    }
+
+    .pitch-circle-wrapper {
+        position: relative !important;
+        width: 44px !important;
+        height: 44px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-bottom: 2px !important;
+    }
+
+    @media (min-width: 640px) {
+        .pitch-circle-wrapper {
+            width: 48px !important;
+            height: 48px !important;
+        }
+    }
+
+    .pitch-delete-btn {
+        position: absolute !important;
+        top: -3px !important;
+        right: -3px !important;
+        width: 18px !important;
+        height: 18px !important;
+        background-color: #ef4444 !important;
+        color: #ffffff !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 10px !important;
+        font-weight: 900 !important;
+        border: 1.5px solid #ffffff !important;
+        cursor: pointer !important;
+        z-index: 30 !important;
+        line-height: 1 !important;
+        padding: 0 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+    }
+
+    .pitch-status-badge {
+        position: absolute !important;
+        top: -3px !important;
+        left: -3px !important;
+        font-size: 9px !important;
+        font-weight: 900 !important;
+        padding: 1px 4px !important;
+        border-radius: 4px !important;
+        border: 1px solid #ffffff !important;
+        z-index: 30 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.4) !important;
+        line-height: 1.2 !important;
+    }
+
+    .pitch-captain-badge {
+        position: absolute !important;
+        bottom: -2px !important;
+        left: -2px !important;
+        width: 18px !important;
+        height: 18px !important;
+        background-color: #000000 !important;
+        color: #facc15 !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 10px !important;
+        font-weight: 900 !important;
+        border: 1.5px solid #facc15 !important;
+        z-index: 25 !important;
+    }
+
+    .pitch-vice-captain-badge {
+        position: absolute !important;
+        bottom: -2px !important;
+        left: -2px !important;
+        width: 18px !important;
+        height: 18px !important;
+        background-color: #0f172a !important;
+        color: #38bdf8 !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 10px !important;
+        font-weight: 900 !important;
+        border: 1.5px solid #38bdf8 !important;
+        z-index: 25 !important;
+    }
+
+    .pitch-pos-badge {
+        position: absolute !important;
+        bottom: -2px !important;
+        right: -2px !important;
+        font-size: 8px !important;
+        font-weight: 900 !important;
+        padding: 1px 3px !important;
+        border-radius: 4px !important;
+        background-color: #000000 !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        z-index: 25 !important;
+        line-height: 1 !important;
+    }
+
+    .pitch-name-tag {
+        background-color: #240028 !important;
+        color: #ffffff !important;
+        font-size: 10px !important;
+        font-weight: 800 !important;
+        padding: 1px 4px !important;
+        border-radius: 4px !important;
+        width: 100% !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important;
+    }
+
+    @media (min-width: 640px) {
+        .pitch-name-tag {
+            font-size: 11px !important;
+            padding: 2px 6px !important;
+        }
+    }
+
+    .pitch-stats-tag {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 2px !important;
+        margin-top: 2px !important;
+    }
+
+    .btn-loading {
+        opacity: 0.75;
+        pointer-events: none;
+    }
+</style>
+
+<!-- تنبيه العائم للرسائل الفورية والسريعة -->
+<div id="toast-alert" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white font-bold text-sm px-6 py-3 rounded-lg shadow-2xl border border-white/20 transition-all duration-300">
+    <span id="toast-message"></span>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6" id="squad-builder-container">
+
+    <!-- الجانب الأيمن: الملعب والتشكيلة -->
+    <div class="lg:col-span-8 flex flex-col items-center">
+        
+        <!-- عرض رسائل النظام -->
+        {% if messages %}
+        <div class="w-full mb-3 space-y-2">
+            {% for message in messages %}
+            <div class="p-3 rounded-lg text-sm font-bold flex items-center justify-between shadow {% if message.tags == 'error' %}bg-red-900/90 text-red-100 border border-red-500{% elif message.tags == 'success' %}bg-emerald-900/90 text-emerald-100 border border-emerald-500{% else %}bg-blue-900/90 text-blue-100 border border-blue-500{% endif %}">
+                <span>{{ message }}</span>
+                <button type="button" onclick="this.parentElement.remove()" class="text-xs opacity-75 hover:opacity-100 mr-2">✕</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- الهيدر العلوي المُعدل -->
+        <div class="w-full bg-[#240028] p-3 sm:p-4 rounded-t-xl grid grid-cols-3 items-center border-b-2 border-plGreen shadow-md gap-1">
+            
+            <div class="text-right">
+                <h2 class="text-sm sm:text-lg font-black text-white tracking-wide truncate">{{ user_team.name }}</h2>
+                <p class="text-[10px] sm:text-xs text-gray-300 mt-0.5">الميزانية: <span class="text-plGreen font-bold text-xs sm:text-sm">{{ user_team.budget }}M</span></p>
+            </div>
+
+            <div class="text-center flex flex-col items-center justify-center">
+                {% if gameweek %}
+                <span class="bg-plPink text-white text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-bold shadow inline-block">الجولة {{ gameweek.number }}</span>
+                {% endif %}
+                <p class="text-[9px] sm:text-[11px] text-gray-300 mt-0.5 sm:mt-1 whitespace-nowrap">
+                    الأساسيين: <span class="font-bold text-white">{{ starters|length }}/6</span> <span class="hidden sm:inline">|</span> <br class="sm:hidden"/> الاحتياط: <span class="font-bold text-white">{{ subs|length }}/2</span>
+                </p>
+            </div>
+            
+            <div class="flex justify-end items-center">
+                {% if gameweek and gameweek.is_open %}
+                <form id="save-squad-form" method="POST" action="{% url 'save_squad' %}" onsubmit="handleSaveSubmit(event)">
+                    {% csrf_token %}
+                    <input type="hidden" name="league_id" value="{{ current_league.id }}">
+                    <button type="submit"
+                            id="save-btn"
+                            class="bg-plGreen hover:bg-emerald-400 text-plDark font-black text-xs sm:text-sm px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer">
+                        <span id="save-btn-icon">💾</span>
+                        <span id="save-btn-text">حفظ</span>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <div id="saving-indicator" class="hidden w-full bg-blue-900/90 border border-blue-500 text-blue-100 p-2.5 rounded-lg my-2 text-center font-bold text-xs shadow">
+            ⏳ جاري حفظ التشكيلة وتثبيتها... يرجى الانتظار.
+        </div>
+
+        {% if not gameweek or not gameweek.is_open %}
+        <div class="w-full bg-red-900/90 border border-red-500 text-red-100 p-3 rounded-lg my-2 text-center font-bold text-sm shadow">
+            🔒 التعديل مغلق حالياً.
+        </div>
+        {% endif %}
+
+        <!-- الملعب الأخضر -->
+        <div class="w-full bg-gradient-to-b from-emerald-800 via-green-700 to-emerald-800 rounded-b-xl p-2 sm:p-6 border-2 border-emerald-600 shadow-2xl relative min-h-[520px] sm:min-h-[580px] flex flex-col justify-between items-center overflow-hidden">
+            
+            <div class="absolute inset-0 border-2 border-white/20 m-2 rounded-lg pointer-events-none"></div>
+            <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-white/20 pointer-events-none"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white/20 rounded-full pointer-events-none"></div>
+
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 w-48 h-20 border-b-2 border-x-2 border-white/20 rounded-b-lg pointer-events-none"></div>
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-8 border-b-2 border-x-2 border-white/20 rounded-b-sm pointer-events-none"></div>
+
+            <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-48 h-20 border-t-2 border-x-2 border-white/20 rounded-t-lg pointer-events-none"></div>
+            <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-24 h-8 border-t-2 border-x-2 border-white/20 rounded-t-sm pointer-events-none"></div>
+
+            <div class="w-full z-10 h-full flex flex-col justify-between items-center py-2 gap-3 sm:gap-4 my-auto">
+                
+                {% if starters %}
+                    <!-- 1️⃣ خط الهجوم (FWD) -->
+                    <div class="w-full flex justify-center items-center gap-1 sm:gap-8 flex-wrap">
+                        {% for player in fwd_list %}
+                        <div class="pitch-card">
+                            <div class="pitch-circle-wrapper">
+                                {% if player.is_suspended or player.suspended_matches_left > 0 %}
+                                    <span class="pitch-status-badge bg-red-600 text-white" title="موقوف">🚫 {{ player.suspended_matches_left }}</span>
+                                {% elif player.has_red_card or player.red_card > 0 %}
+                                    <span class="pitch-status-badge bg-red-600 text-white" title="كارت أحمر">🟥</span>
+                                {% elif player.has_yellow_card or player.yellow_card > 0 %}
+                                    <span class="pitch-status-badge bg-yellow-400 text-black" title="كارت أصفر">🟨</span>
+                                {% endif %}
+
+                                {% if gameweek and gameweek.is_open %}
+                                <button hx-post="{% url 'remove_player' player.id %}"
+                                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                        hx-target="#squad-builder-container"
+                                        hx-select="#squad-builder-container"
+                                        hx-swap="outerHTML"
+                                        class="pitch-delete-btn">✕</button>
+                                {% endif %}
+
+                                <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
+                                     class="w-full h-full p-1">
+                                    {% if player.team.logo %}
+                                        <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain">
+                                    {% else %}
+                                        <span>{{ player.main_category|default:player.position|default:"FWD" }}</span>
+                                    {% endif %}
+                                </div>
+
+                                <span class="pitch-pos-badge">{{ player.main_category|default:player.position|default:"FWD" }}</span>
+
+                                {% if squad.captain == player %}
+                                <span class="pitch-captain-badge">C</span>
+                                {% elif squad.vice_captain == player %}
+                                <span class="pitch-vice-captain-badge">V</span>
+                                {% endif %}
+                            </div>
+                            <div class="pitch-name-tag">{{ player.name }}</div>
+                            <div class="pitch-stats-tag">
+                                <span class="text-[8px] sm:text-[9px] text-yellow-300 font-extrabold bg-black/60 px-1 sm:px-1.5 py-0.5 rounded border border-white/10">{{ player.price }}M</span>
+                                <span class="bg-plGreen text-plDark text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded-full shadow">{{ player.current_pts|default:"0" }} pts</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- 2️⃣ خط الوسط (MID) -->
+                    <div class="w-full flex justify-center items-center gap-1 sm:gap-8 flex-wrap">
+                        {% for player in mid_list %}
+                        <div class="pitch-card">
+                            <div class="pitch-circle-wrapper">
+                                {% if player.is_suspended or player.suspended_matches_left > 0 %}
+                                    <span class="pitch-status-badge bg-red-600 text-white" title="موقوف">🚫 {{ player.suspended_matches_left }}</span>
+                                {% elif player.has_red_card or player.red_card > 0 %}
+                                    <span class="pitch-status-badge bg-red-600 text-white" title="كارت أحمر">🟥</span>
+                                {% elif player.has_yellow_card or player.yellow_card > 0 %}
+                                    <span class="pitch-status-badge bg-yellow-400 text-black" title="كارت أصفر">🟨</span>
+                                {% endif %}
+
+                                {% if gameweek and gameweek.is_open %}
+                                <button hx-post="{% url 'remove_player' player.id %}"
+                                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                        hx-target="#squad-builder-container"
+                                        hx-select="#squad-builder-container"
+                                        hx-swap="outerHTML"
+                                        class="pitch-delete-btn">✕</button>
+                                {% endif %}
+
+                                <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
+                                     class="w-full h-full p-1">
+                                    {% if player.team.logo %}
+                                        <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain">
+                                    {% else %}
+                                        <span>{{ player.main_category|default:player.position|default:"MID" }}</span>
+                                    {% endif %}
+                                </div>
+
+                                <span class="pitch-pos-badge">{{ player.main_category|default:player.position|default:"MID" }}</span>
+
+                                {% if squad.captain == player %}
+                                <span class="pitch-captain-badge">C</span>
+                                {% elif squad.vice_captain == player %}
+                                <span class="pitch-vice-captain-badge">V</span>
+                                {% endif %}
+                            </div>
+                            <div class="pitch-name-tag">{{ player.name }}</div>
+                            <div class="pitch-stats-tag">
+                                <span class="text-[8px] sm:text-[9px] text-yellow-300 font-extrabold bg-black/60 px-1 sm:px-1.5 py-0.5 rounded border border-white/10">{{ player.price }}M</span>
+                                <span class="bg-plGreen text-plDark text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded-full shadow">{{ player.current_pts|default:"0" }} pts</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- 3️⃣ خط الدفاع (DEF) -->
+                    <div class="w-full flex justify-center items-center gap-1 sm:gap-8 flex-wrap">
+                        {% for player in def_list %}
+                        <div class="pitch-card">
+                            <div class="pitch-circle-wrapper">
+                                {% if player.is_suspended or player.suspended_matches_left > 0 %}
+                                    <span class="pitch-status-badge bg-red-600 text-white" title="موقوف">🚫 {{ player.suspended_matches_left }}</span>
+                                {% elif player.has_red_card or player.red_card > 0 %}
+                                    <span class="pitch-status-badge bg-red-600 text-white" title="كارت أحمر">🟥</span>
+                                {% elif player.has_yellow_card or player.yellow_card > 0 %}
+                                    <span class="pitch-status-badge bg-yellow-400 text-black" title="كارت أصفر">🟨</span>
+                                {% endif %}
+
+                                {% if gameweek and gameweek.is_open %}
+                                <button hx-post="{% url 'remove_player' player.id %}"
+                                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                        hx-target="#squad-builder-container"
+                                        hx-select="#squad-builder-container"
+                                        hx-swap="outerHTML"
+                                        class="pitch-delete-btn">✕</button>
+                                {% endif %}
+
+                                <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
+                                     class="w-full h-full p-1">
+                                    {% if player.team.logo %}
+                                        <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain">
+                                    {% else %}
+                                        <span>{{ player.main_category|default:player.position|default:"DEF" }}</span>
+                                    {% endif %}
+                                </div>
+
+                                <span class="pitch-pos-badge">{{ player.main_category|default:player.position|default:"DEF" }}</span>
+
+                                {% if squad.captain == player %}
+                                <span class="pitch-captain-badge">C</span>
+                                {% elif squad.vice_captain == player %}
+                                <span class="pitch-vice-captain-badge">V</span>
+                                {% endif %}
+                            </div>
+                            <div class="pitch-name-tag">{{ player.name }}</div>
+                            <div class="pitch-stats-tag">
+                                <span class="text-[8px] sm:text-[9px] text-yellow-300 font-extrabold bg-black/60 px-1 sm:px-1.5 py-0.5 rounded border border-white/10">{{ player.price }}M</span>
+                                <span class="bg-plGreen text-plDark text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded-full shadow">{{ player.current_pts|default:"0" }} pts</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- 4️⃣ حارس المرمى (GK) -->
+                    <div class="w-full flex justify-center items-center">
+                        {% for player in gk_list %}
+                        <div class="pitch-card">
+                            <div class="pitch-circle-wrapper">
+                                {% if player.is_suspended or player.suspended_matches_left > 0 %}
+                                    <span class="pitch-status-badge bg-red-600 text-white" title="موقوف">🚫 {{ player.suspended_matches_left }}</span>
+                                {% elif player.has_red_card or player.red_card > 0 %}
+                                    <span class="pitch-status-badge bg-red-600 text-white" title="كارت أحمر">🟥</span>
+                                {% elif player.has_yellow_card or player.yellow_card > 0 %}
+                                    <span class="pitch-status-badge bg-yellow-400 text-black" title="كارت أصفر">🟨</span>
+                                {% endif %}
+
+                                {% if gameweek and gameweek.is_open %}
+                                <button hx-post="{% url 'remove_player' player.id %}"
+                                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                        hx-target="#squad-builder-container"
+                                        hx-select="#squad-builder-container"
+                                        hx-swap="outerHTML"
+                                        class="pitch-delete-btn">✕</button>
+                                {% endif %}
+
+                                <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
+                                     class="w-full h-full p-1">
+                                    {% if player.team.logo %}
+                                        <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain">
+                                    {% else %}
+                                        <span>{{ player.main_category|default:player.position|default:"GK" }}</span>
+                                    {% endif %}
+                                </div>
+
+                                <span class="pitch-pos-badge">{{ player.main_category|default:player.position|default:"GK" }}</span>
+
+                                {% if squad.captain == player %}
+                                <span class="pitch-captain-badge">C</span>
+                                {% elif squad.vice_captain == player %}
+                                <span class="pitch-vice-captain-badge">V</span>
+                                {% endif %}
+                            </div>
+                            <div class="pitch-name-tag">{{ player.name }}</div>
+                            <div class="pitch-stats-tag">
+                                <span class="text-[8px] sm:text-[9px] text-yellow-300 font-extrabold bg-black/60 px-1 sm:px-1.5 py-0.5 rounded border border-white/10">{{ player.price }}M</span>
+                                <span class="bg-plGreen text-plDark text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded-full shadow">{{ player.current_pts|default:"0" }} pts</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                {% else %}
+                <div class="text-center py-16">
+                    <p class="text-emerald-100 font-bold text-sm bg-black/50 px-6 py-3 rounded-full border border-emerald-400/30">
+                        ⚽ الملعب فارغ.. اختر 6 لاعبين أساسيين
+                    </p>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+
+        <!-- لوحة اختيار الكابتن والكابتن البديل أسفل الملعب -->
+        {% if starters %}
+        <div class="w-full bg-[#240028] mt-4 p-3.5 rounded-xl border border-yellow-500/30 shadow-lg">
+            <h3 class="text-xs font-black text-yellow-400 mb-3 text-center uppercase tracking-wider border-b border-yellow-500/20 pb-2">
+                👑 تحديد قائد الفريق والبديل
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- اختيار الكابتن -->
+                <div>
+                    <label class="block text-[11px] font-bold text-yellow-300 mb-1">
+                        🟡 الكابتن الرئيسي (x2):
+                    </label>
+                    <select onchange="if(this.value) { htmx.ajax('POST', this.value, {headers: {'X-CSRFToken': '{{ csrf_token }}'}, target: '#squad-builder-container', select: '#squad-builder-container', swap: 'outerHTML scroll:keep'}); }"
+                            class="w-full bg-gray-900 text-white text-xs font-bold rounded-lg p-2 border border-yellow-500/50 focus:border-yellow-400 outline-none transition cursor-pointer"
+                            {% if not gameweek or not gameweek.is_open %}disabled{% endif %}>
+                        <option value="" disabled {% if not squad.captain %}selected{% endif %}>اختر الكابتن...</option>
+                        {% for player in starters %}
+                        <option value="{% url 'set_captain' player.id %}" {% if squad.captain == player %}selected{% endif %}>
+                            {{ player.name }} ({{ player.main_category|default:player.position }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- اختيار الكابتن البديل -->
+                <div>
+                    <label class="block text-[11px] font-bold text-sky-300 mb-1">
+                        🔵 الكابتن البديل (Vice):
+                    </label>
+                    <select onchange="if(this.value) { htmx.ajax('POST', this.value, {headers: {'X-CSRFToken': '{{ csrf_token }}'}, target: '#squad-builder-container', select: '#squad-builder-container', swap: 'outerHTML scroll:keep'}); }"
+                            class="w-full bg-gray-900 text-white text-xs font-bold rounded-lg p-2 border border-sky-500/50 focus:border-sky-400 outline-none transition cursor-pointer"
+                            {% if not gameweek or not gameweek.is_open %}disabled{% endif %}>
+                        <option value="" disabled {% if not squad.vice_captain %}selected{% endif %}>اختر الكابتن البديل...</option>
+                        {% for player in starters %}
+                        {% if squad.captain != player %}
+                        <option value="{% url 'set_vice_captain' player.id %}" {% if squad.vice_captain == player %}selected{% endif %}>
+                            {{ player.name }} ({{ player.main_category|default:player.position }})
+                        </option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- دكة الاحتياطي -->
+        <div class="w-full bg-[#240028] mt-4 p-4 rounded-xl border border-purple-900/40 shadow-lg">
+            <h3 class="text-xs font-black text-gray-300 mb-3 text-center uppercase tracking-wider border-b border-purple-900/30 pb-2">
+                دكـة الاحـتـيـاطـي ({{ subs|length }}/2)
+            </h3>
+            
+            <div class="grid grid-cols-2 gap-3 sm:gap-4 min-h-[100px]">
+                {% for player in subs %}
+                <div class="flex flex-col items-center relative bg-gray-900/90 p-2.5 rounded-lg border border-purple-900/40 shadow-inner justify-between">
+                    
+                    {% if player.is_suspended or player.suspended_matches_left > 0 %}
+                        <span class="pitch-status-badge bg-red-600 text-white" title="موقوف">🚫 {{ player.suspended_matches_left }}</span>
+                    {% elif player.has_red_card or player.red_card > 0 %}
+                        <span class="pitch-status-badge bg-red-600 text-white" title="كارت أحمر">🟥</span>
+                    {% elif player.has_yellow_card or player.yellow_card > 0 %}
+                        <span class="pitch-status-badge bg-yellow-400 text-black" title="كارت أصفر">🟨</span>
+                    {% endif %}
+
+                    {% if gameweek and gameweek.is_open %}
+                    <button hx-post="{% url 'remove_player' player.id %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-target="#squad-builder-container"
+                            hx-select="#squad-builder-container"
+                            hx-swap="outerHTML"
+                            class="pitch-delete-btn">✕</button>
+                    {% endif %}
+
+                    <div class="relative">
+                        <div style="width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;" class="p-1">
+                            {% if player.team.logo %}
+                                <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain">
+                            {% else %}
+                                <span>{{ player.main_category|default:player.position|default:"SUB" }}</span>
+                            {% endif %}
+                        </div>
+                        <span class="pitch-pos-badge">{{ player.main_category|default:player.position|default:"SUB" }}</span>
+                    </div>
+                    
+                    <span class="text-[11px] text-gray-100 font-extrabold mt-1.5 w-full truncate text-center">
+                        {{ player.name }}
+                    </span>
+                    
+                    <div class="flex items-center gap-1 mt-0.5">
+                        <span class="text-[9px] text-yellow-300 font-bold bg-black/60 px-1.5 py-0.5 rounded border border-white/5">
+                            {{ player.price }}M
+                        </span>
+                        <span class="bg-gray-800 text-gray-200 text-[8px] font-extrabold px-1.5 py-0.5 rounded-full border border-gray-700">
+                            {{ player.current_pts|default:"0" }} pts
+                        </span>
+                    </div>
+
+                    {% if gameweek and gameweek.is_open %}
+                    <div class="mt-2 w-full flex flex-col gap-1">
+                        {% if starters|length < 6 %}
+                        <button hx-post="{% url 'move_to_starter' player.id %}"
+                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                hx-target="#squad-builder-container"
+                                hx-select="#squad-builder-container"
+                                hx-swap="outerHTML"
+                                class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[9px] py-1 rounded shadow transition">
+                            📥 إدخال أساسي
+                        </button>
+                        {% endif %}
+
+                        {% if starters %}
+                        <select onchange="if(this.value) { htmx.ajax('POST', this.value, {headers: {'X-CSRFToken': '{{ csrf_token }}'}, target: '#squad-builder-container', select: '#squad-builder-container', swap: 'outerHTML'}); }"
+                                class="w-full bg-emerald-950/90 text-emerald-300 text-[9px] font-bold rounded px-1 py-1 border border-emerald-500/40 cursor-pointer outline-none hover:bg-emerald-900 transition text-center">
+                            <option value="">🔄 بدّل مع..</option>
+                            {% for starter in starters %}
+                            <option value="{% url 'swap_players' starter.id player.id %}">
+                                ← {{ starter.name }} ({{ starter.main_category|default:starter.position }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                </div>
+                {% empty %}
+                <div class="col-span-2 text-xs text-gray-400 text-center py-5 bg-gray-900/40 rounded-lg border border-dashed border-gray-700/60">
+                    الاحتياطي فارغ (يتسع لـ 2 لاعبين).
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- الجانب الأيسر: سوق اللاعبين -->
+    <div class="lg:col-span-4 bg-[#240028] p-4 rounded-xl border border-gray-800 h-fit shadow-md">
+        <h3 class="text-lg font-black text-plGreen mb-4 border-b border-gray-700 pb-2 flex items-center justify-between">
+            <span>سوق اللاعبين</span>
+            <span class="text-xs font-normal text-gray-400">اختر تشكيلتك</span>
+        </h3>
+        
+        {% if gameweek and gameweek.is_open %}
+            <form id="market-filter-form"
+                  hx-get="{% url 'squad_builder' %}" 
+                  hx-target="#player-market-list" 
+                  hx-select="#player-market-list"
+                  hx-swap="outerHTML"
+                  hx-trigger="change from:select, keyup changed delay:250ms from:input"
+                  class="mb-4 space-y-3">
+                
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">ابحث باسم اللاعب:</label>
+                    <input type="text" 
+                           name="search" 
+                           value="{{ search_query|default:'' }}"
+                           placeholder="اسم اللاعب..." 
+                           class="w-full bg-plDark text-white text-sm rounded-lg p-2 border border-gray-700 focus:border-plGreen outline-none transition placeholder-gray-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">الفريق:</label>
+                        <select name="team" class="w-full bg-plDark text-white text-xs rounded-lg p-2 border border-gray-700 focus:border-plGreen outline-none transition">
+                            <option value="">جميع الفرق</option>
+                            {% for team in real_teams %}
+                            <option value="{{ team.id }}" {% if selected_team_id|slugify == team.id|slugify %}selected{% endif %}>
+                                {{ team.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">المركز:</label>
+                        <select name="position" class="w-full bg-plDark text-white text-xs rounded-lg p-2 border border-gray-700 focus:border-plGreen outline-none transition">
+                            <option value="">جميع المراكز</option>
+                            <option value="GK" {% if selected_position == "GK" %}selected{% endif %}>حارس (GK)</option>
+                            <option value="DEF" {% if selected_position == "DEF" %}selected{% endif %}>دفاع (DEF)</option>
+                            <option value="MID" {% if selected_position == "MID" %}selected{% endif %}>وسط (MID)</option>
+                            <option value="FWD" {% if selected_position == "FWD" %}selected{% endif %}>هجوم (FWD)</option>
+                        </select>
+                    </div>
+                    <input type="hidden" name="league_id" value="{{ current_league.id }}">
+                </div>
+            </form>
+
+            <div id="player-market-list">
+                {% include 'fantasy/partials/player_list.html' %}
+            </div>
+        {% else %}
+            <div class="text-center py-8 bg-gray-900/50 rounded-lg border border-gray-800">
+                <span class="text-3xl block mb-2">🔒</span>
+                <p class="text-sm font-bold text-gray-300">سوق الانتقالات مغلق حالياً</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+function handleSaveSubmit(event) {
+    const btn = document.getElementById('save-btn');
+    const btnIcon = document.getElementById('save-btn-icon');
+    const btnText = document.getElementById('save-btn-text');
+    const savingIndicator = document.getElementById('saving-indicator');
+
+    if (btn) {
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+    }
+    if (btnIcon) btnIcon.innerText = '⏳';
+    if (btnText) btnText.innerText = 'جاري الحفظ...';
+    if (savingIndicator) savingIndicator.classList.remove('hidden');
+}
+
+function showToast(message) {
+    const toast = document.getElementById('toast-alert');
+    const toastMsg = document.getElementById('toast-message');
+    if (toast && toastMsg) {
+        toastMsg.innerText = message;
+        toast.classList.remove('hidden');
+        setTimeout(() => {
+            toast.classList.add('hidden');
+        }, 3500);
+    }
+}
+
+document.body.addEventListener('htmx:responseError', function(evt) {
+    if (evt.detail.xhr && evt.detail.xhr.responseText) {
+        showToast(evt.detail.xhr.responseText);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+
+    <!-- رسائل التنبيهات -->
+    {% if messages %}
+    <div class="space-y-2">
+        {% for message in messages %}
+        <div class="p-4 rounded-xl text-sm font-bold shadow-md {% if message.tags == 'success' %}bg-emerald-600/20 text-emerald-400 border border-emerald-500/30{% elif message.tags == 'error' %}bg-rose-600/20 text-rose-400 border border-rose-500/30{% else %}bg-blue-600/20 text-blue-400 border border-blue-500/30{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- عنوان الصفحة -->
+    <div class="text-center space-y-2">
+        <h1 class="text-3xl font-black text-plGreen tracking-wide">🏆 مركز البطولات</h1>
+        <p class="text-gray-400 text-sm">اختر بطولة عامة للانضمام إليها أو ادخل كود بطولة خاصة</p>
+    </div>
+
+    <!-- كارت الانضمام لكود خاص -->
+    <div class="bg-[#240028] p-6 rounded-2xl border border-gray-800 shadow-xl">
+        <h2 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            🔑 الانضمام لدوري خاص
+        </h2>
+        <form action="{% url 'join_private_league' %}" method="POST" class="flex flex-col sm:flex-row gap-3">
+            {% csrf_token %}
+            <input type="text" name="league_code" placeholder="أدخل كود البطولة هنا..." required
+                   class="flex-1 bg-plDark text-white px-4 py-2.5 rounded-xl border border-gray-700 focus:border-plGreen outline-none text-sm font-bold">
+            <button type="submit" 
+                    class="bg-plGreen hover:bg-emerald-400 text-plDark font-black px-6 py-2.5 rounded-xl transition text-sm whitespace-nowrap">
+                انضمام بالكود 🚀
+            </button>
+        </form>
+    </div>
+
+    <!-- البطولات الحالية للمدرب -->
+    {% if my_teams %}
+    <div class="space-y-4">
+        <h2 class="text-lg font-bold text-gray-300">بطولاتي الحالية</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for team in my_teams %}
+            <div class="bg-[#240028] p-5 rounded-2xl border border-plGreen/30 flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-white text-base">🏆 {{ team.league.name }}</h3>
+                    <p class="text-xs text-gray-400 mt-1">اسم فريقك: <span class="text-plGreen">{{ team.name }}</span></p>
+                </div>
+                <a href="{% url 'squad_builder' %}?league_id={{ team.league.id }}" 
+                   class="bg-plDark hover:bg-plGreen hover:text-plDark text-plGreen border border-plGreen/50 text-xs font-bold px-4 py-2 rounded-xl transition">
+                    دخول للفريق ➔
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- البطولات العامة المتاحة -->
+    <div class="space-y-4">
+        <h2 class="text-lg font-bold text-gray-300">البطولات العامة المتاحة</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for league in available_leagues %}
+            <div class="bg-[#240028] p-5 rounded-2xl border border-gray-800 flex justify-between items-center hover:border-gray-700 transition">
+                <div>
+                    <h3 class="font-bold text-white text-base">⚽ {{ league.name }}</h3>
+                    <span class="inline-block mt-2 text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">
+                        بطولة عامة ومفتوحة
+                    </span>
+                </div>
+                <!-- زر الانضمام ينقل للـ join_league بـ ID البطولة -->
+                <a href="{% url 'join_league' league.id %}" 
+                   class="bg-plGreen hover:bg-emerald-400 text-plDark text-xs font-black px-5 py-2.5 rounded-xl transition shadow-lg">
+                   انضمام للبطولة 🚀
+                </a>
+            </div>
+            {% empty %}
+            <div class="col-span-full bg-[#240028] p-8 rounded-2xl border border-gray-800 text-center text-gray-400 text-sm">
+                لا توجد بطولات عامة جديدة المتاحة حالياً (قد تكون مشترِكاً في جميع البطولات المتاحة).
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

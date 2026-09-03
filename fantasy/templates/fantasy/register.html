@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="flex items-center justify-center py-6 sm:py-10">
+    <div class="w-full max-w-md bg-[#240028] border-2 border-plGreen/30 rounded-2xl p-6 sm:p-8 text-right shadow-2xl relative overflow-hidden">
+        
+        <!-- الهيدر والشعار -->
+        <div class="flex flex-col items-center text-center mb-6">
+            <div class="w-20 sm:w-24 mb-2">
+                <img src="{% static 'images/VOP_logo_transparent.png' %}" alt="اتحاد المحترفين" class="w-full h-auto drop-shadow-[0_0_10px_rgba(0,255,133,0.3)]">
+            </div>
+            <h1 class="text-2xl font-black text-plGreen tracking-wide">
+                انضم لمدربي الفانتازي
+            </h1>
+            <p class="text-xs text-gray-300 mt-1">
+                أنشئ حسابك الآن وابدأ في بناء تشكيلة أحلامك
+            </p>
+        </div>
+
+        <!-- أخطاء النموذج -->
+        {% if form.errors %}
+            <div class="mb-5 p-3 rounded-xl bg-plPink/20 border border-plPink text-pink-200 text-xs font-bold shadow space-y-1">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <p>⚠️ {{ field.label }}: {{ error }}</p>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <p>⚠️ {{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- نموذج إنشاء الحساب -->
+        <form method="POST" action="{% url 'register' %}" class="space-y-4" dir="rtl">
+            {% csrf_token %}
+
+            <!-- اسم المستخدم -->
+            <div>
+                <label for="id_username" class="block text-xs font-bold text-gray-200 mb-1.5">
+                    اسم المستخدم (بالإنجليزية)
+                </label>
+                <input type="text" name="username" id="id_username" required
+                       placeholder="اختر اسم مدرب مميز"
+                       class="w-full bg-plDark text-white placeholder-gray-500 text-sm rounded-xl px-4 py-2.5 border border-gray-700 focus:border-plGreen focus:outline-none transition">
+            </div>
+
+            <!-- كلمة المرور -->
+            <div>
+                <label for="id_password1" class="block text-xs font-bold text-gray-200 mb-1.5">
+                    كلمة المرور
+                </label>
+                <input type="password" name="password1" id="id_password1" required
+                       placeholder="••••••••"
+                       class="w-full bg-plDark text-white placeholder-gray-500 text-sm rounded-xl px-4 py-2.5 border border-gray-700 focus:border-plGreen focus:outline-none transition">
+            </div>
+
+            <!-- تأكيد كلمة المرور -->
+            <div>
+                <label for="id_password2" class="block text-xs font-bold text-gray-200 mb-1.5">
+                    تأكيد كلمة المرور
+                </label>
+                <input type="password" name="password2" id="id_password2" required
+                       placeholder="••••••••"
+                       class="w-full bg-plDark text-white placeholder-gray-500 text-sm rounded-xl px-4 py-2.5 border border-gray-700 focus:border-plGreen focus:outline-none transition">
+            </div>
+
+            <!-- زر التسجيل -->
+            <button type="submit" class="w-full mt-2 py-3 bg-plGreen hover:bg-emerald-400 text-plDark font-black text-base rounded-xl transition duration-200 shadow-lg cursor-pointer">
+                أنشئ حسابك وابدأ اللعب ⚽
+            </button>
+        </form>
+
+        <!-- رابط العودة لتسجيل الدخول -->
+        <div class="mt-6 pt-4 border-t border-gray-800 text-center text-xs text-gray-400">
+            لديك حساب بالفعل؟ 
+            <a href="{% url 'login' %}" class="text-plGreen hover:underline font-bold mr-1">
+                سجل دخولك من هنا
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

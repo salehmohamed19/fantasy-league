@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-8">
+
+    <!-- هيدر الصفحة -->
+    <div class="bg-[#240028] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-black text-white flex items-center gap-2">
+                📊 أرشيف الجولات والنتائج
+            </h1>
+            <p class="text-xs text-gray-400 mt-1">استعرض نقاطك بالتفصيل في كل جولة عبر مختلف البطولات التي تشارك فيها</p>
+        </div>
+        <div class="bg-purple-950/60 px-4 py-2 rounded-xl border border-purple-800/40 text-center">
+            <span class="text-xs text-gray-400 block font-bold">إجمالي البطولات</span>
+            <span class="text-xl font-black text-plGreen">{{ leagues_data|length }}</span>
+        </div>
+    </div>
+
+    <!-- عرض البطولات والفرق والجولات -->
+    {% for item in leagues_data %}
+    <div class="bg-[#240028] rounded-2xl border border-gray-800 shadow-xl overflow-hidden space-y-4">
+        
+        <!-- هيدر البطولة والفريق -->
+        <div class="p-5 bg-purple-950/40 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <span class="text-xs font-bold text-plPink bg-plPink/10 px-3 py-1 rounded-full border border-plPink/20 inline-block mb-2">
+                    🏆 {{ item.league.name }}
+                </span>
+                <h2 class="text-xl font-black text-white">{{ item.team.name }}</h2>
+            </div>
+            
+            <div class="bg-emerald-950/70 border border-emerald-500/40 px-4 py-2 rounded-xl text-left">
+                <span class="block text-[10px] text-gray-400 font-bold uppercase">إجمالي نقاط البطولة</span>
+                <span class="text-2xl font-black text-plGreen">{{ item.total_points }} <span class="text-xs text-gray-300">pts</span></span>
+            </div>
+        </div>
+
+        <!-- كروت الجولات تفاعلية بروابط التشكيلة المغلقة -->
+        <div class="p-5">
+            {% if item.gameweeks %}
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {% for gw in item.gameweeks %}
+                        {% if gw.id %}
+                            
+                            {% if gw.is_published %}
+                                <!-- 1. الجولة منشورة ومعتمدة نهائياً - التشكيلة متاح لرؤيتها للجميع -->
+                                <a href="{% url 'view_closed_squad' gw_id=gw.id %}" 
+                                   title="اضغط لعرض تشكيلة الجولة {{ gw.number }}"
+                                   class="bg-slate-900/90 border border-gray-800 hover:border-plGreen p-3 rounded-xl flex flex-col items-center justify-between text-center transition-all transform hover:-translate-y-1 shadow-md group">
+                                    
+                                    <span class="text-xs font-bold text-gray-400 group-hover:text-plGreen transition">
+                                        الجولة {{ gw.number }}
+                                    </span>
+                                    
+                                    <div class="my-2">
+                                        <span class="text-2xl font-black text-amber-400 group-hover:text-plGreen transition">{{ gw.points }}</span>
+                                        <span class="text-[10px] text-gray-500 block">نقاط</span>
+                                    </div>
+
+                                    {% if gw.is_highest %}
+                                        <span class="text-[9px] bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded border border-amber-500/20 font-bold">
+                                            ⭐ الأعلى
+                                        </span>
+                                    {% else %}
+                                        <span class="text-[9px] text-gray-500 font-mono">معتمدة</span>
+                                    {% endif %}
+
+                                    <span class="text-[10px] text-plGreen opacity-0 group-hover:opacity-100 font-bold mt-1 transition">
+                                        👁️ عرض التشكيلة
+                                    </span>
+                                </a>
+
+                            {% elif gw.has_stats %}
+                                <!-- 2. الإحصائيات تم إدخالها ولكنها في انتظار اعتماد الأدمن (التشكيلة مخفية إلا عن الأدمن إن أراد) -->
+                                <div class="bg-slate-900/90 border border-amber-500/40 p-3 rounded-xl flex flex-col items-center justify-between text-center shadow-md relative">
+                                    <span class="text-xs font-bold text-gray-400">
+                                        الجولة {{ gw.number }}
+                                    </span>
+                                    
+                                    <div class="my-1">
+                                        <span class="text-xs font-bold text-amber-400 block leading-tight">
+                                            ⏳ بانتظار الاعتماد
+                                        </span>
+                                        <span class="text-[10px] text-gray-500 mt-1 block">النقاط محجوبة</span>
+                                    </div>
+
+                                    <div class="w-full space-y-1.5 mt-2">
+                                        {% if request.user.is_staff %}
+                                            <!-- إمكانية عرض التشكيلة للأدمن فقط للتأكد قبل الاعتماد -->
+                                            <a href="{% url 'view_closed_squad' gw_id=gw.id %}" 
+                                               class="text-[10px] text-purple-300 hover:text-white bg-purple-900/40 hover:bg-purple-800/60 border border-purple-700/40 py-1 px-2 rounded-lg block font-bold transition">
+                                                👁️ معاينة التشكيلة
+                                            </a>
+
+                                            <!-- زر الاعتماد والنشر للأدمن فقط -->
+                                            <form action="{% url 'publish_gameweek_stats' gw.id %}" method="POST" class="w-full">
+                                                {% csrf_token %}
+                                                <button type="submit" class="w-full text-[9px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1 px-1 rounded shadow transition">
+                                                    ✅ اعتماد النقاط
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span class="text-[9px] text-gray-500 font-mono block py-1">مغلقة حتى الاعتماد</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                            {% else %}
+                                <!-- 3. الجولة مغلقة وبانتظار رفع الإحصائيات (زر التشكيلة مخفي بالكامل) -->
+                                <div class="bg-slate-900/90 border border-yellow-500/30 p-3 rounded-xl flex flex-col items-center justify-between text-center shadow-md">
+                                    <span class="text-xs font-bold text-gray-400">
+                                        الجولة {{ gw.number }}
+                                    </span>
+                                    
+                                    <div class="my-2">
+                                        <span class="text-xs font-bold text-yellow-400 block leading-relaxed">
+                                            ⚽ جاري لعب المباريات و رصد الإحصائيات
+                                        </span>
+                                    </div>
+
+                                    <span class="text-[9px] text-gray-500 font-mono">غير متاحة الآن</span>
+                                </div>
+                            {% endif %}
+
+                        {% else %}
+                            <div class="bg-slate-900/90 border border-gray-800 p-3 rounded-xl flex flex-col items-center justify-between text-center opacity-60 cursor-not-allowed">
+                                <span class="text-xs font-bold text-gray-400">الجولة {{ gw.number }}</span>
+                                <div class="my-2">
+                                    <span class="text-2xl font-black text-amber-400">--</span>
+                                    <span class="text-[10px] text-gray-500 block">نقاط</span>
+                                </div>
+                                <span class="text-[9px] text-gray-500 font-mono">غير متاحة</span>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-center py-6 text-xs text-gray-400">لم تُلعب أي جولات في هذه البطولة بعد.</p>
+            {% endif %}
+        </div>
+
+    </div>
+    {% empty %}
+    <div class="bg-[#240028] p-12 rounded-2xl border border-gray-800 text-center">
+        <p class="text-gray-400 text-sm font-bold">أنت غير مشارك في أي بطولة حالياً.</p>
+    </div>
+    {% endfor %}
+
+</div>
+{% endblock %}

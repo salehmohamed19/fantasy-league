@@ -1,0 +1,146 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فانتازي دوري المحترفين</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HTMX CDN -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <!-- Alpine.js CDN (لإدارة القائمة المنسدلة) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        plDark: '#38003c',
+                        plGreen: '#00ff85',
+                        plPink: '#e90052',
+                        plLight: '#ebfff5',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-plDark text-white font-sans min-h-screen flex flex-col selection:bg-plGreen selection:text-plDark">
+
+    <!-- Navbar Header -->
+    <header class="bg-[#240028] border-b-4 border-plGreen p-3 sm:p-4 shadow-xl sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+            
+            <!-- الجزء الأيمن: اللوجو وروابط الصفحات الأساسية -->
+            <div class="flex flex-col sm:flex-row items-center gap-3 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+                <!-- Logo & Title -->
+                <a href="{% url 'squad_builder' %}" class="text-xl sm:text-2xl font-black text-plGreen tracking-wider flex items-center gap-2 hover:opacity-90 transition flex-shrink-0">
+                    <img src="{% static 'images/VOP_logo_transparent.png' %}" alt="اتحاد المحترفين" class="w-8 h-8 sm:w-10 sm:h-10 object-contain">
+                    <span>FANTASY LEAGUE</span>
+                </a>
+
+                <!-- روابط Navigation الرئيسية (جهة اليمين بجانب اللوجو) -->
+                <nav class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm font-bold flex-wrap justify-center sm:justify-start border-t sm:border-t-0 border-gray-800 pt-2 sm:pt-0 w-full sm:w-auto">
+                    <a href="{% url 'squad_builder' %}" class="hover:text-plGreen transition px-1 py-1 whitespace-nowrap">تشكيلتي والسوق</a>
+                    <a href="{% url 'leaderboard' %}" class="hover:text-plGreen transition px-1 py-1 whitespace-nowrap">🏆 الترتيب</a>
+                    <a href="{% url 'leagues_history' %}" class="hover:text-plGreen transition px-1 py-1 whitespace-nowrap">📅 أرشيف الجولات</a>
+                </nav>
+            </div>
+
+            <!-- الجزء الأيسر: عناصر الحساب والبطولات والقائمة المنسدلة -->
+            <div class="flex items-center justify-center md:justify-end gap-2 sm:gap-3 text-xs sm:text-sm font-bold flex-wrap w-full md:w-auto border-t md:border-t-0 border-gray-800/60 pt-2 md:pt-0">
+                {% if user.is_authenticated %}
+                <!-- مبدّل البطولات وزر الانضمام -->
+                <div class="flex items-center gap-1 bg-plDark/60 p-1 rounded-xl border border-gray-700">
+                    <form method="GET" action="{% url 'squad_builder' %}" class="inline">
+                        <select name="league_id" onchange="this.form.submit()" 
+                                class="bg-plDark text-plGreen border border-plGreen/40 text-[11px] sm:text-xs font-bold rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-plGreen transition">
+                            {% for team in user.fantasy_teams.all %}
+                                <option value="{{ team.league.id }}" {% if current_league and current_league.id == team.league.id %}selected{% endif %}>
+                                    🏆 {{ team.league.name }}
+                                </option>
+                            {% empty %}
+                                <option value="">لا توجد بطولات</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+
+                    <a href="{% url 'leagues_hub' %}" title="انضمام لبطولة جديدة" 
+                       class="text-[11px] sm:text-xs bg-plGreen/10 hover:bg-plGreen/20 text-plGreen border border-plGreen/40 font-bold px-2 py-1 rounded-lg transition whitespace-nowrap">
+                        ➕ بطولات
+                    </a>
+                </div>
+
+                <!-- البروفايل والقائمة المنسدلة -->
+                <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <!-- زر الصورة والاسم -->
+                    <button @click="open = !open" 
+                            class="flex items-center gap-2 bg-purple-950/60 hover:bg-purple-900/80 border border-gray-700 hover:border-plGreen/50 px-2.5 py-1 rounded-full transition cursor-pointer focus:outline-none">
+                        <div class="w-7 h-7 rounded-full bg-slate-900 border-2 border-plGreen flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+                            {% if user.profile.avatar %}
+                                <img src="{{ user.profile.avatar.url }}" alt="{{ user.username }}" class="w-full h-full object-cover">
+                            {% else %}
+                                <span class="text-xs font-black text-plGreen">{{ user.username|slice:":1"|upper }}</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-xs font-bold text-gray-200 hidden xs:inline">{{ user.username }}</span>
+                        <!-- سهم المؤشر -->
+                        <svg class="w-3 h-3 text-gray-400 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+
+                    <!-- القائمة المنسدلة -->
+                    <div x-show="open" 
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="transform opacity-0 scale-95"
+                         x-transition:enter-end="transform opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="transform opacity-100 scale-100"
+                         x-transition:leave-end="transform opacity-0 scale-95"
+                         class="absolute left-0 mt-2 w-44 bg-[#240028] border border-gray-700 rounded-xl shadow-2xl py-1 z-50 divide-y divide-gray-800"
+                         style="display: none;">
+                        
+                        <!-- خيار الملف الشخصي -->
+                        <a href="{% url 'profile' %}" 
+                           class="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-plGreen/10 hover:text-plGreen transition">
+                            <span>👤</span>
+                            <span>الملف الشخصي</span>
+                        </a>
+
+                        <!-- خيار تسجيل الخروج -->
+                        <form method="POST" action="{% url 'logout' %}" class="block w-full">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/10 hover:text-red-500 transition text-right cursor-pointer">
+                                <span>🚪</span>
+                                <span>تسجيل الخروج</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <a href="{% url 'login' %}" class="bg-plGreen text-plDark text-xs font-bold py-1.5 px-4 rounded-lg hover:bg-emerald-400 transition">
+                    دخول
+                </a>
+                {% endif %}
+            </div>
+
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main id="main-content" class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer التجميلي -->
+    <footer class="bg-[#240028] border-t border-gray-800 text-center text-xs text-gray-400 py-4 mt-auto">
+        <p>جميع الحقوق محفوظة &copy; 2026 - مهندس / صالح محمد صالح</p>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,58 @@
+<div class="flex flex-col items-center group relative transition-all duration-300">
+    
+    <!-- زر حذف اللاعب (يظهر عند فتح الجولة) -->
+    {% if gameweek and gameweek.is_open and not gameweek.is_locked %}
+    <button hx-post="{% url 'remove_player' player.id %}"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-target="#squad-builder-container"
+            hx-select="#squad-builder-container"
+            hx-swap="outerHTML"
+            title="حذف اللاعب"
+            class="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-700 text-white w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shadow-lg z-30 transition transform hover:scale-125">
+        ✕
+    </button>
+    {% endif %}
+
+    <!-- دائرة اللاعب + شارة المركز التكتيكي -->
+    <div {% if gameweek and gameweek.is_open and not gameweek.is_locked %}
+            hx-post="{% url 'set_captain' player.id %}"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-target="#squad-builder-container"
+            hx-select="#squad-builder-container"
+            hx-swap="outerHTML"
+            title="اضغط لاختياره كابتن"
+            class="cursor-pointer hover:scale-110 active:scale-95 transition transform"
+         {% else %}
+            title="التعديل مغلق"
+            class="cursor-not-allowed opacity-95"
+         {% endif %}
+         class="w-11 h-11 sm:w-13 sm:h-13 {% if squad.captain == player %}bg-amber-400 border-amber-200 ring-2 ring-yellow-300 shadow-amber-400/50{% else %}bg-slate-900/90 border-white/80{% endif %} rounded-full border-2 flex flex-col items-center justify-center shadow-xl relative">
+        
+        <!-- شارة المركز (GK, DEF, MID, FWD) -->
+        <span class="{{ pos_color }} text-white text-[8px] font-black px-1.5 py-0.2 rounded-full absolute -top-1.5 shadow border border-white/40">
+            {{ pos_label }}
+        </span>
+
+        <span class="text-[10px] sm:text-xs font-black tracking-tight {% if squad.captain == player %}text-slate-950{% else %}text-white{% endif %}">
+            {{ player.name|slice:":3"|upper }}
+        </span>
+        
+        <!-- شارة الكابتن C -->
+        {% if squad.captain == player %}
+        <span class="absolute -bottom-1 -right-1 bg-slate-950 text-amber-300 text-[9px] font-black w-4 h-4 rounded-full border border-amber-400 flex items-center justify-center shadow">C</span>
+        {% endif %}
+    </div>
+
+    <!-- اسم اللاعب كامل -->
+    <span class="bg-[#1f0022]/95 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md mt-1 shadow-md border border-gray-700/80 text-center max-w-[80px] sm:max-w-[100px] truncate">
+        {{ player.name }}
+    </span>
+    
+    <!-- كبسولات النقاط والسعر -->
+    <div class="flex items-center gap-1 mt-0.5">
+        <span class="text-[8px] sm:text-[9px] text-amber-300 font-extrabold bg-black/50 px-1 rounded border border-white/10">{{ player.price }}M</span>
+        <span class="bg-plGreen text-slate-950 text-[8px] sm:text-[9px] font-black px-1.5 py-0.2 rounded-full shadow" title="نقاط الجولة">
+            {{ player.current_pts|default:"0" }}p
+        </span>
+    </div>
+</div>

@@ -1,0 +1,73 @@
+<div id="player-market-list" class="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+    {% for player in available_players %}
+    <div class="flex items-center justify-between gap-2 bg-gray-800/90 p-2.5 rounded-xl border border-gray-700/80 hover:border-plGreen transition-all duration-200">
+        
+        <!-- معلومات اللاعب والشعار -->
+        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <!-- دائرة الشعار مع شارة المركز -->
+            <div class="relative flex-shrink-0">
+                <div style="width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; color: #ffffff; border: 1.5px solid rgba(255,255,255,0.2); box-shadow: 0 2px 5px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;" class="p-0.5">
+                    {% if player.team.logo %}
+                        <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain">
+                    {% else %}
+                        <span>{{ player.main_category|default:player.position|default:"POS" }}</span>
+                    {% endif %}
+                </div>
+                
+                <!-- شارة صغيرة للمركز -->
+                <span class="absolute -bottom-1 -right-1 text-[8px] font-black px-1 rounded bg-black text-white border border-white/30 leading-tight shadow">
+                    {{ player.main_category|default:player.position|default:"POS" }}
+                </span>
+            </div>
+
+            <div class="min-w-0 flex-1">
+                <span class="text-xs font-black text-white truncate block leading-snug">{{ player.name }}</span>
+                <p class="text-[10px] text-gray-400 truncate mt-0.5 font-medium">{{ player.team.name }}</p>
+            </div>
+        </div>
+        
+        <!-- السعر والنقاط والزر (محاذاة متجاوبة للموبايل) -->
+        <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            
+            <!-- السعر والنقاط -->
+            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-1">
+                <!-- شارة النقاط الإجمالية TOT -->
+                <div class="flex items-center gap-0.5 bg-gradient-to-r from-purple-900/80 to-indigo-900/80 text-purple-200 text-[10px] font-extrabold px-1.5 py-0.5 rounded border border-purple-500/30 whitespace-nowrap shadow-sm">
+                    <span>{{ player.total_pts|default:"0" }}</span>
+                    <span class="text-[8px] text-purple-300 opacity-80">TOT</span>
+                </div>
+
+                <!-- السعر -->
+                <span class="text-[11px] font-bold text-yellow-400 bg-black/50 px-1.5 py-0.5 rounded border border-yellow-500/20 whitespace-nowrap">
+                    {{ player.price }}M
+                </span>
+            </div>
+
+            <!-- الزر / الحالة -->
+            <div class="flex-shrink-0 min-w-[70px] text-left">
+                {% if player.id in squad_player_ids %}
+                    <span class="inline-block w-full text-center bg-gray-700/80 text-emerald-400 font-bold text-[9px] sm:text-[10px] px-1.5 py-1 rounded border border-emerald-500/30 whitespace-nowrap">
+                        ✓ بفريقك
+                    </span>
+                {% elif player.team.id in disabled_team_ids %}
+                    <span class="inline-block w-full text-center bg-red-950/60 text-red-400 font-bold text-[9px] sm:text-[10px] px-1.5 py-1 rounded border border-red-800/40 whitespace-nowrap">
+                        الحد (2)
+                    </span>
+                {% else %}
+                    <button hx-post="{% url 'add_player_to_squad' player.id %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-target="#squad-builder-container"
+                            hx-select="#squad-builder-container"
+                            hx-swap="outerHTML"
+                            class="w-full bg-plGreen hover:bg-emerald-400 active:scale-95 text-plDark font-black text-xs px-2 py-1 rounded shadow transition cursor-pointer whitespace-nowrap">
+                        + شراء
+                    </button>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-xs text-gray-400 text-center py-6">لا يوجد لاعبين متاحين في الفلتر الحالي.</p>
+    {% endfor %}
+</div>

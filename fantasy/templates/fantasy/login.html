@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* خلفية حديثة متدرجة تعكس ألوان الشعار */
+    .login-wrapper {
+        min-height: 100vh;
+        background: radial-gradient(circle at center, #2e0854 0%, #0f021e 70%, #05000a 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+    }
+
+    /* كارت تسجل الدخول بحواف زجاجية وتأثير Glow */
+    .login-card {
+        background: rgba(20, 5, 38, 0.75);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(168, 85, 247, 0.25);
+        box-shadow: 0 0 30px rgba(126, 34, 206, 0.25), 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    /* تأثير التركيز على الخانات Input Focus */
+    .form-input-custom:focus {
+        border-color: #a855f7 !important;
+        box-shadow: 0 0 15px rgba(168, 85, 247, 0.4) !important;
+        outline: none !important;
+    }
+
+    /* زر الدخول الرئيسي بتأثير الفضة والبنفسجي */
+    .btn-submit-glow {
+        background: linear-gradient(135deg, #a855f7 0%, #6b21a8 100%);
+        box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
+        transition: all 0.3s ease;
+    }
+
+    .btn-submit-glow:hover {
+        background: linear-gradient(135deg, #c084fc 0%, #7e22ce 100%);
+        box-shadow: 0 6px 20px rgba(168, 85, 247, 0.6);
+        transform: translateY(-2px);
+    }
+
+    /* تحسين حركة الشعار */
+    .logo-pulse {
+        filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.4));
+        transition: transform 0.3s ease, filter 0.3s ease;
+    }
+
+    .logo-pulse:hover {
+        transform: scale(1.03);
+        filter: drop-shadow(0 0 20px rgba(192, 132, 252, 0.7));
+    }
+</style>
+
+<div class="login-wrapper w-full">
+    <div class="login-card w-full max-w-md rounded-2xl p-6 sm:p-8 text-right relative overflow-hidden">
+        
+        <!-- إضاءة خلفية ديكورية داخل الكارت -->
+        <div class="absolute -top-10 -right-10 w-32 h-32 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+        <!-- الشعار والهيدر -->
+        <div class="flex flex-col items-center text-center mb-8 relative z-10">
+            <div class="w-32 sm:w-40 mb-3">
+                <!-- استبدل المسار باسم ملف اللوجو لديك -->
+                <img src="{% static 'images/VOP_logo_transparent.png' %}" alt="اتحاد المحترفين" class="w-full h-auto logo-pulse">
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-black text-white tracking-wide">
+                بوابة المدربين
+            </h1>
+            <p class="text-xs sm:text-sm text-purple-200/70 mt-1 font-medium">
+                سجّل دخولك لإدارة تشكيلة فريقك والمنافسة
+            </p>
+        </div>
+
+        <!-- عرض رسائل الأخطاء إن وجدت -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="mb-5 p-3 rounded-xl bg-red-900/50 border border-red-500/50 text-red-200 text-xs sm:text-sm text-center font-bold shadow">
+                    ⚠️ {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if form.errors %}
+            <div class="mb-5 p-3 rounded-xl bg-red-900/50 border border-red-500/50 text-red-200 text-xs sm:text-sm text-center font-bold shadow">
+                ⚠️ اسم المستخدم أو كلمة المرور غير صحيحة.
+            </div>
+        {% endif %}
+
+        <!-- نموذج تسجيل الدخول -->
+        <form method="POST" action="{% url 'login' %}" class="space-y-5 relative z-10" dir="rtl">
+            {% csrf_token %}
+
+            <!-- اسم المستخدم / البريد -->
+            <div>
+                <label for="id_username" class="block text-xs font-bold text-gray-300 mb-2">
+                    اسم المستخدم أو البريد
+                </label>
+                <div class="relative">
+                    <input type="text" name="username" id="id_username" required
+                           placeholder="أدخل اسم المستخدم"
+                           class="form-input-custom w-full bg-black/40 text-white placeholder-gray-500 text-sm rounded-xl px-4 py-3 border border-purple-900/60 transition-all duration-200">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">👤</span>
+                </div>
+            </div>
+
+            <!-- كلمة المرور -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <label for="id_password" class="block text-xs font-bold text-gray-300">
+                        كلمة المرور
+                    </label>
+                    {% if reset_password_url %}
+                    <a href="{{ reset_password_url }}" class="text-[11px] text-purple-400 hover:text-purple-300 transition">
+                        نسيت كلمة المرور؟
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="relative">
+                    <input type="password" name="password" id="id_password" required
+                           placeholder="••••••••"
+                           class="form-input-custom w-full bg-black/40 text-white placeholder-gray-500 text-sm rounded-xl px-4 py-3 border border-purple-900/60 transition-all duration-200">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">🔒</span>
+                </div>
+            </div>
+
+            <!-- تذكرني -->
+            <div class="flex items-center justify-between text-xs text-gray-300 py-1">
+                <label class="flex items-center cursor-pointer space-x-2 space-x-reverse select-none">
+                    <input type="checkbox" name="remember_me" class="w-4 h-4 rounded bg-black/50 border-purple-800 text-purple-600 focus:ring-purple-500 focus:ring-offset-0">
+                    <span class="font-medium">تذكر تسجيل دخولي</span>
+                </label>
+            </div>
+
+            <!-- زر الدخول -->
+            <button type="submit" class="btn-submit-glow w-full py-3.5 rounded-xl text-white font-black text-base tracking-wide cursor-pointer transition">
+                دخول إلى التشكيلة ⚽
+            </button>
+        </form>
+
+        <!-- رابط إنشاء حساب جديد -->
+        <div class="mt-8 pt-5 border-t border-purple-900/40 text-center text-xs text-gray-400 relative z-10">
+            مدرب جديد؟ 
+            <a href="{% url 'register' %}" class="text-purple-400 hover:text-purple-300 font-extrabold mr-1 underline underline-offset-4 decoration-purple-500/50 hover:decoration-purple-300">
+                أنشئ فريقك الآن
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

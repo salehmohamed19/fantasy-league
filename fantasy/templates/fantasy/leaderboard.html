@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto bg-[#240028] p-4 sm:p-6 rounded-xl border border-gray-800 shadow-2xl">
+    
+    <!-- عرض رسائل النظام (نجاح / خطأ) -->
+    {% if messages %}
+        <div class="mb-4 space-y-2">
+            {% for message in messages %}
+                <div class="p-3 rounded-lg text-sm font-bold flex justify-between items-center {% if message.tags == 'error' or message.tags == 'warning' %}bg-red-900/80 text-red-200 border border-red-500/50{% else %}bg-emerald-900/80 text-emerald-200 border border-emerald-500/50{% endif %}">
+                    <span>{{ message }}</span>
+                    <button type="button" onclick="this.parentElement.remove();" class="text-xs opacity-60 hover:opacity-100">✕</button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- لوحة تحكم الأدمن لإنهاء وفتح الجولات (تظهر للمشرفين فقط) -->
+    {% if user.is_staff %}
+        <div class="mb-6 p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h3 class="text-amber-400 font-black text-sm flex items-center gap-2">
+                    ⚙️ لوحة إدارة الجولات (Admin Panel)
+                </h3>
+                <p class="text-xs text-gray-300 mt-1">
+                    حالة الجولة الحالية: 
+                    <strong class="text-amber-300">
+                        {% if current_gameweek %}
+                            الجولة {{ current_gameweek.number }} 
+                            {% if current_gameweek.is_finished or not current_gameweek.is_open %}
+                                (مغلقة 🔒)
+                            {% else %}
+                                (نشطة 🟢)
+                            {% endif %}
+                        {% else %}
+                            لا توجد جولة مفتوحة
+                        {% endif %}
+                    </strong>
+                </p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- زر إغلاق الجولة الحالية (يظهر فقط إذا كانت الجولة مفتوحة) -->
+                {% if current_gameweek and current_gameweek.is_open and not current_gameweek.is_finished %}
+                <form action="{% url 'close_current_gameweek' %}" method="POST" onsubmit="return confirm('هل أنت متأكد من إغلاق الجولة الحالية دون فتح جولة جديدة؟');">
+                    {% csrf_token %}
+                    <button type="submit" class="bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-2 rounded-lg font-bold transition flex items-center gap-1.5 shadow-md cursor-pointer">
+                        🔒 إغلاق الجولة الحالية
+                    </button>
+                </form>
+                {% endif %}
+
+                <!-- زر إغلاق وفتح الجولة التالية / بدأ الجولة التالية -->
+                <form action="{% url 'close_and_advance_gameweek' %}" method="POST" onsubmit="return confirm('هل أنت متأكد من الانتقال إلى الجولة التالية؟');">
+                    {% csrf_token %}
+                    <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-4 py-2 rounded-lg font-black transition flex items-center gap-1.5 shadow-lg cursor-pointer">
+                        ⏩ بدأ الجولة التالية
+                    </button>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- البار العلوي -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 border-b border-gray-700 pb-4">
+        <div>
+            <h2 class="text-2xl font-black text-plGreen flex items-center gap-2">
+                🏆 جدول ترتيب البطولات
+            </h2>
+            <p class="text-xs text-gray-400 mt-1">ترتيب المشاركين بناءً على النقاط الإجمالية ونقاط الجولة الحالية</p>
+        </div>
+        <div class="flex items-center gap-2">
+            {% if current_gameweek %}
+            <span class="bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 text-xs px-3 py-1 rounded-full font-bold">
+                الجولة {{ current_gameweek.number }}
+            </span>
+            {% endif %}
+            
+            {% if active_league %}
+            <span class="bg-plPink text-white text-xs px-3 py-1 rounded-full font-bold">
+                {{ active_league.name }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- مبدّل البطولات (League Switcher Tabs) -->
+    {% if all_leagues %}
+    <div class="mb-6">
+        <p class="text-xs font-bold text-gray-400 mb-2">اختر البطولة لعرض الترتيب:</p>
+        <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {% for league in all_leagues %}
+                <a href="?league_id={{ league.id }}" 
+                   class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 border whitespace-nowrap
+                   {% if active_league and league.id == active_league.id %}
+                       bg-plGreen text-slate-950 border-plGreen font-black shadow-lg shadow-emerald-500/10
+                   {% else %}
+                       bg-purple-950/40 text-gray-300 border-gray-700 hover:bg-purple-900/60 hover:text-white
+                   {% endif %}">
+                    <span>🏆</span>
+                    <span>{{ league.name }}</span>
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- جدول الترتيب -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-right text-sm">
+            <thead>
+                <tr class="text-gray-400 border-b border-gray-700 text-xs uppercase">
+                    <th class="py-3 px-3 text-center">#</th>
+                    <th class="py-3 px-4">اسم الفريق</th>
+                    <th class="py-3 px-4">المدرب</th>
+                    <th class="py-3 px-3 text-center">الميزانية</th>
+                    <th class="py-3 px-4 text-center">نقاط الجولة</th>
+                    <th class="py-3 px-4 text-left">إجمالي النقاط</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-800">
+                {% for team in teams %}
+                <tr class="hover:bg-plDark/50 transition {% if team.is_current_user or team.user == request.user %}bg-purple-900/40 border-r-4 border-r-plGreen{% endif %}">
+                    
+                    <!-- رقم الترتيب -->
+                    <td class="py-4 px-3 text-center font-black">
+                        {% if forloop.counter == 1 %}
+                            <span class="text-lg" title="المركز الأول">🥇</span>
+                        {% elif forloop.counter == 2 %}
+                            <span class="text-lg" title="المركز الثاني">🥈</span>
+                        {% elif forloop.counter == 3 %}
+                            <span class="text-lg" title="المركز الثالث">🥉</span>
+                        {% else %}
+                            <span class="text-gray-400">{{ forloop.counter }}</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- اسم الفريق -->
+                    <td class="py-4 px-4 font-bold text-white">
+                        {{ team.name }}
+                        {% if team.is_current_user or team.user == request.user %}
+                        <span class="bg-plGreen/20 text-plGreen text-[10px] px-1.5 py-0.5 rounded font-bold mr-1">فريقك</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- اسم المدرب -->
+                    <td class="py-4 px-4 text-gray-300 font-medium">{{ team.user.username }}</td>
+
+                    <!-- الميزانية المتبقية -->
+                    <td class="py-4 px-3 text-center font-bold text-yellow-400">{{ team.budget }}M</td>
+
+                    <!-- نقاط الجولة الحالية -->
+                    <td class="py-4 px-4 text-center">
+                        <span class="bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 text-xs font-black px-2.5 py-1 rounded-full">
+                            {{ team.current_gw_points|default:"0" }} pts
+                        </span>
+                    </td>
+
+                    <!-- إجمالي النقاط الكلية -->
+                    <td class="py-4 px-4 text-left font-black text-xl text-plGreen">
+                        {{ team.total_points|default:"0" }} <span class="text-xs font-bold text-gray-400">pts</span>
+                    </td>
+
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-8 text-gray-400 font-bold">
+                        ⚽ لا يوجد مشاركون في هذه البطولة حتى الآن.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}

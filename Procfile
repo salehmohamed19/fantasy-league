@@ -1,0 +1,1 @@
+web: gunicorn fantasy_project.wsgi

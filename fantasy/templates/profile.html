@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- رسائل النظام -->
+    {% if messages %}
+        <div class="space-y-2">
+            {% for message in messages %}
+                <div class="p-3 rounded-lg text-sm font-bold flex justify-between items-center {% if message.tags == 'error' or message.tags == 'warning' %}bg-red-900/80 text-red-200 border border-red-500/50{% else %}bg-emerald-900/80 text-emerald-200 border border-emerald-500/50{% endif %}">
+                    <span>{{ message }}</span>
+                    <button type="button" onclick="this.parentElement.remove();" class="text-xs opacity-60 hover:opacity-100">✕</button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- الهيدر الرئيسي للبروفايل مع الصورة والكارت التعريفي -->
+    <div class="bg-[#240028] p-5 sm:p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+        
+        <!-- الصورة الشخصية واستمارة تغييرها (محسنة بالكامل للموبايل) -->
+        <form method="POST" enctype="multipart/form-data" id="avatar-form" action="{% url 'profile' %}" class="flex flex-col items-center gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_profile">
+            
+            <div class="relative group cursor-pointer">
+                <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-plGreen shadow-lg bg-slate-900 flex items-center justify-center relative flex-shrink-0">
+                    {% if user.profile.avatar %}
+                        <img src="{{ user.profile.avatar.url }}" alt="{{ user.username }}" class="w-full h-full object-cover">
+                    {% else %}
+                        <span class="text-3xl sm:text-4xl font-black text-plGreen">{{ user.username|slice:":1"|upper }}</span>
+                    {% endif %}
+                    
+                    <label for="mobile_avatar_input" class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-white text-xs font-bold cursor-pointer">
+                        <span>📷</span>
+                        <span>تغيير</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- زر مخصص وواضح للموبايل لتحديد ملف أو التقاط صورة -->
+            <label for="mobile_avatar_input" class="bg-gray-800 hover:bg-gray-700 text-gray-200 text-[11px] font-bold px-3 py-1.5 rounded-lg border border-gray-600 flex items-center gap-1.5 active:scale-95 transition cursor-pointer mt-1">
+                <svg class="w-3.5 h-3.5 text-plGreen" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h0.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span>اختر صورة من الهاتف</span>
+            </label>
+
+            <!-- حقل الصورة المباشر المربوط بـ onchange للرفع التلقائي -->
+            <input type="file" name="avatar" id="mobile_avatar_input" accept="image/*" class="hidden" onchange="document.getElementById('avatar-form').submit();">
+        </form>
+
+        <!-- معلومات المدرب وسجل الإنجازات -->
+        <div class="flex-1 text-center md:text-right w-full">
+            <div class="flex flex-col md:flex-row items-center justify-center md:justify-start gap-2">
+                <h1 class="text-xl sm:text-2xl font-black text-white">{{ user.get_full_name|default:user.username }}</h1>
+                <span class="text-xs text-gray-400 font-mono">(@{{ user.username }})</span>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">عضو منذ: {{ user.date_joined|date:"M Y" }}</p>
+
+            <!-- الإحصائيات العامة التراكمية -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4 w-full">
+                <div class="bg-purple-950/40 p-3 rounded-xl border border-purple-800/30 text-center">
+                    <span class="block text-xs text-gray-400 font-bold">مجموع النقاط الكلي</span>
+                    <span class="text-lg sm:text-xl font-black text-plGreen">{{ total_points_all_leagues }} pts</span>
+                </div>
+                <div class="bg-purple-950/40 p-3 rounded-xl border border-purple-800/30 text-center">
+                    <span class="block text-xs text-gray-400 font-bold">عدد البطولات</span>
+                    <span class="text-lg sm:text-xl font-black text-plPink">{{ leagues_count }}</span>
+                </div>
+                <div class="bg-purple-950/40 p-3 rounded-xl border border-purple-800/30 text-center col-span-2 sm:col-span-1">
+                    <span class="block text-xs text-gray-400 font-bold">البريد الإلكتروني</span>
+                    <span class="text-xs font-bold text-gray-300 truncate block mt-1">{{ user.email|default:"غير محدد" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- سجل البطولات والفرق ونقاط كل بطولة منفصلة -->
+        <div class="lg:col-span-2 space-y-4">
+            <div class="bg-[#240028] p-4 sm:p-5 rounded-2xl border border-gray-800 shadow-xl">
+                <h2 class="text-base sm:text-lg font-black text-plGreen flex items-center gap-2 mb-4">
+                    🏆 نقاط البطولات والفرق الخاصة بك
+                </h2>
+
+                <div class="space-y-4">
+                    {% for item in teams_stats %}
+                    <div class="p-3.5 sm:p-4 rounded-xl bg-purple-950/30 border border-gray-700/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div class="space-y-2 w-full sm:w-auto flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-plPink bg-plPink/10 px-2.5 py-0.5 rounded-full border border-plPink/20">
+                                    🏆 {{ item.team.league.name }}
+                                </span>
+                            </div>
+                            
+                            <h3 class="text-base sm:text-lg font-bold text-white">{{ item.team.name }}</h3>
+                            
+                            <!-- تفاصيل النقاط الخاصة بهذه البطولة تحديداً -->
+                            <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
+                                <div class="bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 px-2.5 sm:px-3 py-1 rounded-lg font-bold">
+                                    إجمالي نقاط البطولة: <strong class="text-plGreen text-xs sm:text-sm">{{ item.total_points }} pts</strong>
+                                </div>
+                                
+                                {% if item.latest_gw_number %}
+                                <div class="bg-slate-900 border border-gray-700 text-gray-300 px-2.5 py-1 rounded-lg font-medium">
+                                    الجولة {{ item.latest_gw_number }}: <strong class="text-amber-400">{{ item.current_gw_points }} pts</strong>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="text-gray-400 font-medium">
+                                    الميزانية: <strong class="text-yellow-400">{{ item.team.budget }}M</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- نموذج تعديل اسم الفريق -->
+                        <form method="POST" class="w-full sm:w-auto flex items-center gap-2 border-t sm:border-t-0 border-gray-800 pt-3 sm:pt-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_team_name">
+                            <input type="hidden" name="team_id" value="{{ item.team.id }}">
+                            <input type="text" name="name" value="{{ item.team.name }}" required 
+                                   class="bg-slate-900 text-white text-xs rounded-lg px-3 py-2 border border-gray-700 focus:border-plGreen outline-none w-full sm:w-36 flex-1 sm:flex-none">
+                            <button type="submit" class="bg-gray-800 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded-lg font-bold transition whitespace-nowrap">
+                                ✏️ تغيير
+                            </button>
+                        </form>
+                    </div>
+                    {% empty %}
+                    <p class="text-center py-6 text-xs text-gray-400">أنت غير مشارك في أي بطولة حالياً.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- تعديل البيانات الشخصية وتغيير كلمة المرور -->
+        <div class="space-y-6">
+
+            <!-- تعديل الاسم والإيميل -->
+            <div class="bg-[#240028] p-4 sm:p-5 rounded-2xl border border-gray-800 shadow-xl">
+                <h2 class="text-md font-black text-white mb-4 flex items-center gap-2">
+                    👤 تعديل البيانات الشخصية
+                </h2>
+                <form method="POST" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_profile">
+                    
+                    <div>
+                        <label class="block text-xs text-gray-400 font-bold mb-1">الاسم الأول</label>
+                        {{ u_form.first_name }}
+                        {% if u_form.first_name.errors %}
+                            <p class="text-[10px] text-red-400 mt-0.5">{{ u_form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 font-bold mb-1">اسم العائلة</label>
+                        {{ u_form.last_name }}
+                        {% if u_form.last_name.errors %}
+                            <p class="text-[10px] text-red-400 mt-0.5">{{ u_form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 font-bold mb-1">البريد الإلكتروني</label>
+                        {{ u_form.email }}
+                        {% if u_form.email.errors %}
+                            <p class="text-[10px] text-red-400 mt-0.5">{{ u_form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="w-full bg-plGreen text-slate-950 font-black py-2.5 rounded-lg text-xs hover:bg-emerald-400 transition mt-2">
+                        حفظ البيانات
+                    </button>
+                </form>
+            </div>
+
+            <!-- تغيير كلمة المرور -->
+            <div class="bg-[#240028] p-4 sm:p-5 rounded-2xl border border-gray-800 shadow-xl">
+                <h2 class="text-md font-black text-amber-400 mb-4 flex items-center gap-2">
+                    🔒 تغيير كلمة المرور
+                </h2>
+                <form method="POST" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="change_password">
+                    
+                    {% for field in pass_form %}
+                    <div>
+                        <label class="block text-xs text-gray-400 font-bold mb-1">{{ field.label }}</label>
+                        <input type="{{ field.field.widget.input_type }}" name="{{ field.name }}" id="{{ field.id_for_label }}" required
+                               class="w-full bg-slate-900 text-white rounded-lg p-2.5 border border-gray-700 text-sm focus:border-plGreen outline-none">
+                        {% if field.errors %}
+                            <p class="text-[10px] text-red-400 mt-0.5">{{ field.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded-lg text-xs transition mt-2">
+                        تحديث كلمة المرور
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

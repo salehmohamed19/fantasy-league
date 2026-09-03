@@ -1,0 +1,1123 @@
+[
+{
+    "model": "auth.user",
+    "fields": {
+        "password": "pbkdf2_sha256$1200000$JahyaQ38YRPGqCmHOYwWkE$lF7vTlnTCZNDR6Splw4MIadFF5pvJwdXAnR3zD83lW8=",
+        "last_login": "2026-09-02T03:44:22.896Z",
+        "is_superuser": true,
+        "username": "saleh",
+        "first_name": "’«·Õ „Õ„œ ’«·Õ",
+        "last_name": "",
+        "email": "salehrabia87@gmail.com",
+        "is_staff": true,
+        "is_active": true,
+        "date_joined": "2026-08-23T08:54:29.954Z",
+        "groups": [],
+        "user_permissions": []
+    }
+},
+{
+    "model": "auth.user",
+    "fields": {
+        "password": "pbkdf2_sha256$1200000$NQbprbIu4HQCAje4Eyhz6t$jWP8VSkmFl7OTbzJXst1LgEnAZx/bf1dSZON6AcrA7w=",
+        "last_login": "2026-08-25T07:37:32.367Z",
+        "is_superuser": false,
+        "username": "„Õ„Êœ",
+        "first_name": "",
+        "last_name": "",
+        "email": "",
+        "is_staff": false,
+        "is_active": true,
+        "date_joined": "2026-08-24T19:29:56.869Z",
+        "groups": [],
+        "user_permissions": []
+    }
+},
+{
+    "model": "auth.user",
+    "fields": {
+        "password": "pbkdf2_sha256$1200000$TUWkdqyYh47CrMz3TYy0QE$X2W1fk2Tx2MCvJldTliTL8/3o/C9VgHKgunS2qq25O8=",
+        "last_login": "2026-08-29T10:51:56.606Z",
+        "is_superuser": false,
+        "username": "mohamed",
+        "first_name": "„Õ„œ",
+        "last_name": "‰«’—",
+        "email": "",
+        "is_staff": false,
+        "is_active": true,
+        "date_joined": "2026-08-24T20:29:05.560Z",
+        "groups": [],
+        "user_permissions": []
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "2qt09480bb486hibvalal8r5trcljwpe",
+    "fields": {
+        "session_data": ".eJxVjjsOgzAQRO_iOrKw_FlvyvQ5g7W210CCQAJDE-XugYgiaefNPM1LBFprF9aF59BncRVKXH6zSOnJ4wHyg8Z2kmka69xHeVTkSRd5nzIPt7P7J-ho6fa1KWAUALpCPhqbADMnDa5odNZGbDgaAg9sG3KaPTYlI3LR2oEyjnYppdpvHAamduXvWf3-ALJBPs8:1x0dco:BB-hG3RcJW_U-jSO22ttRgDfzomLw8qywZ49vrkqmX8",
+        "expire_date": "2026-09-13T11:22:58.951Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "bv26nlfhhx149wk2egiswu12osru13cm",
+    "fields": {
+        "session_data": ".eJxVjjsOgzAQRO_iOrKw_FlvyvQ5g7W210CCQAJDE-XugYgiaefNPM1LBFprF9aF59BncRVKXH6zSOnJ4wHyg8Z2kmka69xHeVTkSRd5nzIPt7P7J-ho6fa1KWAUALpCPhqbADMnDa5odNZGbDgaAg9sG3KaPTYlI3LR2oEyjnYppdpvHAamduXvWf3-ALJBPs8:1x0kNz:oK_me6a_B0oE2qs83e2tvLl2A-pB_c_RAupnO_YVVVg",
+        "expire_date": "2026-09-13T18:36:07.048Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "em4zsanicmv0r0qczb24lmgs1qdq1msu",
+    "fields": {
+        "session_data": ".eJxVjjsOgzAQRO_iOrKw_FlvyvQ5g7W210CCQAJDE-XugYgiaefNPM1LBFprF9aF59BncRVKXH6zSOnJ4wHyg8Z2kmka69xHeVTkSRd5nzIPt7P7J-ho6fa1KWAUALpCPhqbADMnDa5odNZGbDgaAg9sG3KaPTYlI3LR2oEyjnYppdpvHAamduXvWf3-ALJBPs8:1x0kkG:ESaBUgBouYLqD270GY4OfqAOL1Lo-B9Qx99H_GalCbA",
+        "expire_date": "2026-09-13T18:59:08.274Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "jh8vefwctgf3nuhbeopbzxxqjj3vgn04",
+    "fields": {
+        "session_data": ".eJxVjjsOgzAQRO_iOrKw_FlvyvQ5g7W210CCQAJDE-XugYgiaefNPM1LBFprF9aF59BncRVKXH6zSOnJ4wHyg8Z2kmka69xHeVTkSRd5nzIPt7P7J-ho6fa1KWAUALpCPhqbADMnDa5odNZGbDgaAg9sG3KaPTYlI3LR2oEyjnYppdpvHAamduXvWf3-ALJBPs8:1x0ddX:cut1vJWFPZDGmUwyyDQXRzl4GWBYEScDRpqqzv9uaLQ",
+        "expire_date": "2026-09-13T11:23:43.262Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "ltyffax42wwhkki6zhy7bdjlk5wqjx2d",
+    "fields": {
+        "session_data": ".eJxVjMsOwiAQRf-FtSEQHsO4dO83kAEGqRqalHZl_Hdt0oVu7znnvkSkbW1xG7zEqYiz0OL0uyXKD-47KHfqt1nmua_LlOSuyIMOeZ0LPy-H-3fQaLRvbStYDYC-UkjWZcDC2YCvBr1zCRUnSxCAnSJvOKCqBZGrMR609STeH9X1N3g:1x0ecL:NHvvPF8PpuCLy7ZETiqG6A8T8D7QxZE5sahirsJFE-0",
+        "expire_date": "2026-09-13T12:26:33.058Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "vlcocmav1hsblaf9zrijgzae8cmzh5il",
+    "fields": {
+        "session_data": ".eJxVjjsOgzAQRO_iOrKw_FlvyvQ5g7W210CCQAJDE-XugYgiaefNPM1LBFprF9aF59BncRVKXH6zSOnJ4wHyg8Z2kmka69xHeVTkSRd5nzIPt7P7J-ho6fa1KWAUALpCPhqbADMnDa5odNZGbDgaAg9sG3KaPTYlI3LR2oEyjnYppdpvHAamduXvWf3-ALJBPs8:1x1buQ:cnR_5pv6jNEJjYy3mVG57eDWpXXgngJSqVWmrO0zIpE",
+        "expire_date": "2026-09-16T03:45:10.264Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "xwaorhdu9e72u7dnijydtftxom81xbwn",
+    "fields": {
+        "session_data": ".eJxVjMsOwiAQRf-FtSEQHsO4dO83kAEGqRqalHZl_Hdt0oVu7znnvkSkbW1xG7zEqYiz0OL0uyXKD-47KHfqt1nmua_LlOSuyIMOeZ0LPy-H-3fQaLRvbStYDYC-UkjWZcDC2YCvBr1zCRUnSxCAnSJvOKCqBZGrMR609STeH9X1N3g:1x0kMe:aF2UcRIzDHY_qhTyEITrhsVm4bXmslL9WQR7aqBDigU",
+        "expire_date": "2026-09-13T18:34:44.473Z"
+    }
+},
+{
+    "model": "fantasy.league",
+    "pk": 3,
+    "fields": {
+        "name": "œÊ—Ì « Õ«œ «·„Õ —›Ì‰ «·„Ê”„ «·À«·À",
+        "code": "22",
+        "is_public": true,
+        "is_active": true
+    }
+},
+{
+    "model": "fantasy.realteam",
+    "pk": 3,
+    "fields": {
+        "league": 3,
+        "name": "«·”ﬂ… «·ÕœÌœ",
+        "logo": "team_logos/WhatsApp_Image_2026-08-23_at_12_SswXUKU.17.04_PM.jpeg"
+    }
+},
+{
+    "model": "fantasy.realteam",
+    "pk": 4,
+    "fields": {
+        "league": 3,
+        "name": "œ„Ì«ÿ",
+        "logo": "team_logos/WhatsApp_Image_2026-08-23_at_12.17.03_PM_3.jpeg"
+    }
+},
+{
+    "model": "fantasy.realteam",
+    "pk": 5,
+    "fields": {
+        "league": 3,
+        "name": "«·»—«“Ì·",
+        "logo": "team_logos/WhatsApp_Image_2026-08-23_at_12.17.03_PM_2.jpeg"
+    }
+},
+{
+    "model": "fantasy.realteam",
+    "pk": 6,
+    "fields": {
+        "league": 3,
+        "name": "›Ì—Ê‰ Ì‰«",
+        "logo": "team_logos/WhatsApp_Image_2026-08-23_at_12.17.03_PM_1.jpeg"
+    }
+},
+{
+    "model": "fantasy.realteam",
+    "pk": 7,
+    "fields": {
+        "league": 3,
+        "name": "«·»— €«·",
+        "logo": "team_logos/WhatsApp_Image_2026-08-23_at_12.17.03_PM.jpeg"
+    }
+},
+{
+    "model": "fantasy.player",
+    "pk": 12,
+    "fields": {
+        "team": 3,
+        "name": "„Õ„œ ‰«’—",
+        "position": "CB",
+        "price": "5.2",
+        "is_suspended": false,
+        "suspended_matches_left": 0,
+        "has_yellow_card": false,
+        "has_red_card": false
+    }
+},
+{
+    "model": "fantasy.player",
+    "pk": 13,
+    "fields": {
+        "team": 3,
+        "name": "„Õ„Êœ «·⁄“»Ì",
+        "position": "CAM",
+        "price": "4.6",
+        "is_suspended": false,
+        "suspended_matches_left": 0,
+        "has_yellow_card": true,
+        "has_red_card": false
+    }
+},
+{
+    "model": "fantasy.player",
+    "pk": 14,
+    "fields": {
+        "team": 5,
+        "name": "’·«Õ —÷«",
+        "position": "CB",
+        "price": "5.3",
+        "is_suspended": false,
+        "suspended_matches_left": 0,
+        "has_yellow_card": false,
+        "has_red_card": false
+    }
+},
+{
+    "model": "fantasy.player",
+    "pk": 15,
+    "fields": {
+        "team": 3,
+        "name": "«”«„… ’ﬁ—",
+        "position": "ST",
+        "price": "10.0",
+        "is_suspended": false,
+        "suspended_matches_left": 0,
+        "has_yellow_card": true,
+        "has_red_card": false
+    }
+},
+{
+    "model": "fantasy.player",
+    "pk": 16,
+    "fields": {
+        "team": 3,
+        "name": "„Õ„œ «·ﬁ«÷Ì",
+        "position": "ST",
+        "price": "11.9",
+        "is_suspended": false,
+        "suspended_matches_left": 0,
+        "has_yellow_card": false,
+        "has_red_card": false
+    }
+},
+{
+    "model": "fantasy.player",
+    "pk": 17,
+    "fields": {
+        "team": 5,
+        "name": "«Õ„œ —«÷Ì",
+        "position": "ST",
+        "price": "5.0",
+        "is_suspended": false,
+        "suspended_matches_left": 0,
+        "has_yellow_card": false,
+        "has_red_card": false
+    }
+},
+{
+    "model": "fantasy.player",
+    "pk": 18,
+    "fields": {
+        "team": 4,
+        "name": "Õ”Ì‰ ⁄ÿÌ…",
+        "position": "CB",
+        "price": "5.0",
+        "is_suspended": false,
+        "suspended_matches_left": 0,
+        "has_yellow_card": false,
+        "has_red_card": false
+    }
+},
+{
+    "model": "fantasy.player",
+    "pk": 19,
+    "fields": {
+        "team": 4,
+        "name": "⁄»œÂ ”—⁄« ",
+        "position": "CAM",
+        "price": "5.0",
+        "is_suspended": false,
+        "suspended_matches_left": 0,
+        "has_yellow_card": false,
+        "has_red_card": false
+    }
+},
+{
+    "model": "fantasy.player",
+    "pk": 20,
+    "fields": {
+        "team": 6,
+        "name": "„Õ„Êœ ⁄ÿÌ…",
+        "position": "ST",
+        "price": "5.0",
+        "is_suspended": false,
+        "suspended_matches_left": 0,
+        "has_yellow_card": false,
+        "has_red_card": false
+    }
+},
+{
+    "model": "fantasy.player",
+    "pk": 21,
+    "fields": {
+        "team": 6,
+        "name": "”⁄œ ”„Ì—",
+        "position": "CF",
+        "price": "5.2",
+        "is_suspended": false,
+        "suspended_matches_left": 0,
+        "has_yellow_card": false,
+        "has_red_card": false
+    }
+},
+{
+    "model": "fantasy.player",
+    "pk": 22,
+    "fields": {
+        "team": 7,
+        "name": "ﬂ—Ì„",
+        "position": "CDM",
+        "price": "5.0",
+        "is_suspended": false,
+        "suspended_matches_left": 0,
+        "has_yellow_card": false,
+        "has_red_card": false
+    }
+},
+{
+    "model": "fantasy.gameweek",
+    "pk": 6,
+    "fields": {
+        "league": 3,
+        "number": 1,
+        "is_open": false,
+        "is_finished": true,
+        "is_published": true
+    }
+},
+{
+    "model": "fantasy.gameweek",
+    "pk": 8,
+    "fields": {
+        "league": 3,
+        "number": 2,
+        "is_open": false,
+        "is_finished": true,
+        "is_published": true
+    }
+},
+{
+    "model": "fantasy.gameweek",
+    "pk": 9,
+    "fields": {
+        "league": 3,
+        "number": 3,
+        "is_open": false,
+        "is_finished": true,
+        "is_published": true
+    }
+},
+{
+    "model": "fantasy.gameweek",
+    "pk": 11,
+    "fields": {
+        "league": 3,
+        "number": 4,
+        "is_open": false,
+        "is_finished": true,
+        "is_published": true
+    }
+},
+{
+    "model": "fantasy.gameweek",
+    "pk": 14,
+    "fields": {
+        "league": 3,
+        "number": 5,
+        "is_open": false,
+        "is_finished": true,
+        "is_published": false
+    }
+},
+{
+    "model": "fantasy.gameweek",
+    "pk": 15,
+    "fields": {
+        "league": 3,
+        "number": 6,
+        "is_open": false,
+        "is_finished": true,
+        "is_published": false
+    }
+},
+{
+    "model": "fantasy.gameweek",
+    "pk": 16,
+    "fields": {
+        "league": 3,
+        "number": 7,
+        "is_open": false,
+        "is_finished": true,
+        "is_published": false
+    }
+},
+{
+    "model": "fantasy.gameweek",
+    "pk": 18,
+    "fields": {
+        "league": 3,
+        "number": 8,
+        "is_open": false,
+        "is_finished": true,
+        "is_published": false
+    }
+},
+{
+    "model": "fantasy.gameweek",
+    "pk": 19,
+    "fields": {
+        "league": 3,
+        "number": 9,
+        "is_open": true,
+        "is_finished": false,
+        "is_published": false
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 1,
+    "fields": {
+        "player": 14,
+        "gameweek": 6,
+        "team": null,
+        "played": false,
+        "goals": 1,
+        "assists": 1,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": "",
+        "points": 6
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 2,
+    "fields": {
+        "player": 12,
+        "gameweek": 6,
+        "team": 3,
+        "played": false,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "RED_CARD",
+        "suspension_matches": 1,
+        "suspension_notes": "",
+        "points": -3
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 3,
+    "fields": {
+        "player": 13,
+        "gameweek": 6,
+        "team": 3,
+        "played": false,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "DISCIPLINARY",
+        "suspension_matches": 2,
+        "suspension_notes": "",
+        "points": 0
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 4,
+    "fields": {
+        "player": 16,
+        "gameweek": 8,
+        "team": 3,
+        "played": false,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": "",
+        "points": 0
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 5,
+    "fields": {
+        "player": 21,
+        "gameweek": 8,
+        "team": null,
+        "played": false,
+        "goals": 2,
+        "assists": 1,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": "",
+        "points": 11
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 6,
+    "fields": {
+        "player": 12,
+        "gameweek": 9,
+        "team": 3,
+        "played": false,
+        "goals": 1,
+        "assists": 1,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": "",
+        "points": 7
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 7,
+    "fields": {
+        "player": 15,
+        "gameweek": 11,
+        "team": 3,
+        "played": false,
+        "goals": 1,
+        "assists": 0,
+        "clean_sheet": true,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": "",
+        "points": 3
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 8,
+    "fields": {
+        "player": 12,
+        "gameweek": 11,
+        "team": 3,
+        "played": false,
+        "goals": 1,
+        "assists": 1,
+        "clean_sheet": true,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": "",
+        "points": 11
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 9,
+    "fields": {
+        "player": 13,
+        "gameweek": 11,
+        "team": 3,
+        "played": false,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "RED_CARD",
+        "suspension_matches": 1,
+        "suspension_notes": "",
+        "points": 0
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 10,
+    "fields": {
+        "player": 12,
+        "gameweek": 14,
+        "team": 3,
+        "played": true,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": true,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "RED_CARD",
+        "suspension_matches": 1,
+        "suspension_notes": "",
+        "points": -3
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 11,
+    "fields": {
+        "player": 13,
+        "gameweek": 14,
+        "team": 3,
+        "played": true,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": true,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": "",
+        "points": -1
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 12,
+    "fields": {
+        "player": 15,
+        "gameweek": 14,
+        "team": 3,
+        "played": true,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": true,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": "",
+        "points": -1
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 13,
+    "fields": {
+        "player": 16,
+        "gameweek": 14,
+        "team": 3,
+        "played": true,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": null,
+        "points": 0
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 14,
+    "fields": {
+        "player": 18,
+        "gameweek": 14,
+        "team": 4,
+        "played": false,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": null,
+        "points": 0
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 15,
+    "fields": {
+        "player": 19,
+        "gameweek": 14,
+        "team": 4,
+        "played": false,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": null,
+        "points": 0
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 16,
+    "fields": {
+        "player": 14,
+        "gameweek": 14,
+        "team": 5,
+        "played": false,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": null,
+        "points": 0
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 17,
+    "fields": {
+        "player": 17,
+        "gameweek": 14,
+        "team": 5,
+        "played": false,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": null,
+        "points": 0
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 18,
+    "fields": {
+        "player": 20,
+        "gameweek": 14,
+        "team": 6,
+        "played": false,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": null,
+        "points": 0
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 19,
+    "fields": {
+        "player": 21,
+        "gameweek": 14,
+        "team": 6,
+        "played": false,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": null,
+        "points": 0
+    }
+},
+{
+    "model": "fantasy.playergameweekstat",
+    "pk": 20,
+    "fields": {
+        "player": 22,
+        "gameweek": 14,
+        "team": 7,
+        "played": false,
+        "goals": 0,
+        "assists": 0,
+        "clean_sheet": false,
+        "yellow_card": false,
+        "red_card": false,
+        "penalties_taken": 0,
+        "penalties_missed": 0,
+        "suspension_reason": "NONE",
+        "suspension_matches": 0,
+        "suspension_notes": null,
+        "points": 0
+    }
+},
+{
+    "model": "fantasy.userfantasyteam",
+    "pk": 7,
+    "fields": {
+        "user": [
+            "saleh"
+        ],
+        "league": 3,
+        "name": "›—Ìﬁ ’«·Õ „Õ„œ",
+        "budget": "49.5",
+        "total_points": 20
+    }
+},
+{
+    "model": "fantasy.userfantasyteam",
+    "pk": 9,
+    "fields": {
+        "user": [
+            "mohamed"
+        ],
+        "league": 3,
+        "name": "›—Ìﬁ mohamed",
+        "budget": "100.0",
+        "total_points": 0
+    }
+},
+{
+    "model": "fantasy.usersquad",
+    "pk": 7,
+    "fields": {
+        "user_team": 7,
+        "gameweek": 6,
+        "captain": 14,
+        "vice_captain": null,
+        "transfers_made": 0,
+        "transfers_cost": 0,
+        "is_saved": false,
+        "points_earned": 6,
+        "starting_players": [
+            13,
+            14
+        ],
+        "substitutes": []
+    }
+},
+{
+    "model": "fantasy.usersquad",
+    "pk": 10,
+    "fields": {
+        "user_team": 7,
+        "gameweek": 8,
+        "captain": 19,
+        "vice_captain": null,
+        "transfers_made": 2,
+        "transfers_cost": 4,
+        "is_saved": true,
+        "points_earned": 7,
+        "starting_players": [
+            12,
+            13,
+            17,
+            19,
+            20,
+            21
+        ],
+        "substitutes": [
+            14,
+            18
+        ]
+    }
+},
+{
+    "model": "fantasy.usersquad",
+    "pk": 11,
+    "fields": {
+        "user_team": 7,
+        "gameweek": 9,
+        "captain": 13,
+        "vice_captain": null,
+        "transfers_made": 0,
+        "transfers_cost": 0,
+        "is_saved": true,
+        "points_earned": 7,
+        "starting_players": [
+            12,
+            13,
+            14,
+            18,
+            19,
+            21
+        ],
+        "substitutes": [
+            20,
+            22
+        ]
+    }
+},
+{
+    "model": "fantasy.usersquad",
+    "pk": 12,
+    "fields": {
+        "user_team": 9,
+        "gameweek": 9,
+        "captain": null,
+        "vice_captain": null,
+        "transfers_made": 0,
+        "transfers_cost": 0,
+        "is_saved": false,
+        "points_earned": 0,
+        "starting_players": [],
+        "substitutes": []
+    }
+},
+{
+    "model": "fantasy.usersquad",
+    "pk": 14,
+    "fields": {
+        "user_team": 7,
+        "gameweek": 11,
+        "captain": 13,
+        "vice_captain": 13,
+        "transfers_made": 1,
+        "transfers_cost": 0,
+        "is_saved": true,
+        "points_earned": 3,
+        "starting_players": [
+            13,
+            14,
+            15,
+            17,
+            18,
+            19
+        ],
+        "substitutes": [
+            20,
+            21
+        ]
+    }
+},
+{
+    "model": "fantasy.usersquad",
+    "pk": 16,
+    "fields": {
+        "user_team": 7,
+        "gameweek": 14,
+        "captain": 14,
+        "vice_captain": 12,
+        "transfers_made": 0,
+        "transfers_cost": 0,
+        "is_saved": true,
+        "points_earned": 0,
+        "starting_players": [
+            12,
+            14,
+            15,
+            17,
+            18,
+            19
+        ],
+        "substitutes": [
+            20,
+            21
+        ]
+    }
+},
+{
+    "model": "fantasy.usersquad",
+    "pk": 17,
+    "fields": {
+        "user_team": 7,
+        "gameweek": 15,
+        "captain": 14,
+        "vice_captain": 12,
+        "transfers_made": 0,
+        "transfers_cost": 0,
+        "is_saved": true,
+        "points_earned": 0,
+        "starting_players": [
+            12,
+            14,
+            15,
+            17,
+            18,
+            19
+        ],
+        "substitutes": [
+            20,
+            21
+        ]
+    }
+},
+{
+    "model": "fantasy.usersquad",
+    "pk": 18,
+    "fields": {
+        "user_team": 7,
+        "gameweek": 16,
+        "captain": 14,
+        "vice_captain": 12,
+        "transfers_made": 0,
+        "transfers_cost": 0,
+        "is_saved": true,
+        "points_earned": 0,
+        "starting_players": [
+            12,
+            14,
+            15,
+            18,
+            19,
+            21
+        ],
+        "substitutes": [
+            17,
+            20
+        ]
+    }
+},
+{
+    "model": "fantasy.usersquad",
+    "pk": 19,
+    "fields": {
+        "user_team": 7,
+        "gameweek": 18,
+        "captain": 20,
+        "vice_captain": 14,
+        "transfers_made": 0,
+        "transfers_cost": 0,
+        "is_saved": true,
+        "points_earned": 0,
+        "starting_players": [
+            12,
+            14,
+            18,
+            19,
+            20,
+            21
+        ],
+        "substitutes": [
+            15,
+            17
+        ]
+    }
+},
+{
+    "model": "fantasy.usersquad",
+    "pk": 20,
+    "fields": {
+        "user_team": 7,
+        "gameweek": 19,
+        "captain": 20,
+        "vice_captain": 14,
+        "transfers_made": 0,
+        "transfers_cost": 0,
+        "is_saved": false,
+        "points_earned": 0,
+        "starting_players": [
+            12,
+            14,
+            18,
+            19,
+            20,
+            21
+        ],
+        "substitutes": [
+            15,
+            17
+        ]
+    }
+},
+{
+    "model": "fantasy.userprofile",
+    "pk": 1,
+    "fields": {
+        "user": [
+            "mohamed"
+        ],
+        "avatar": ""
+    }
+},
+{
+    "model": "fantasy.userprofile",
+    "pk": 2,
+    "fields": {
+        "user": [
+            "saleh"
+        ],
+        "avatar": 

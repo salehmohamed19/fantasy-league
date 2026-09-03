@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- Header info -->
+    <div class="bg-[#240028] p-5 rounded-2xl border-2 border-plGreen/30 shadow-xl flex justify-between items-center flex-wrap gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="bg-plPink text-white text-xs font-black px-2 py-0.5 rounded">🔒 مغلقة (للعرض فقط)</span>
+                <h1 class="text-xl font-black text-plGreen">تشكيلة الجولة {{ gameweek.number }}</h1>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">الفريق: <span class="text-white font-bold">{{ squad.user_team.name }}</span></p>
+        </div>
+
+        <div class="flex gap-3">
+            <div class="bg-plDark border border-plGreen/40 px-4 py-2 rounded-xl text-center">
+                <span class="text-[10px] text-gray-400 block font-bold">نقاط الجولة</span>
+                <span class="text-xl font-black text-plGreen">{{ squad.points_earned|default:0 }}</span>
+            </div>
+            <a href="{% url 'leagues_history' %}" class="bg-gray-800 hover:bg-gray-700 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1 text-white">
+                🔙 العودة للأرشيف
+            </a>
+        </div>
+    </div>
+
+    {% if squad %}
+    <!-- الملعب للعرض فقط -->
+    <div class="bg-gradient-to-b from-emerald-900 to-green-950 p-6 rounded-2xl border-2 border-emerald-600/50 shadow-2xl relative">
+        <h2 class="text-center text-xs font-bold text-emerald-200 mb-4 tracking-widest uppercase">⚽ التشكيلة الأساسية</h2>
+
+        <!-- شبكة اللاعبين الأساسيين -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            {% for player in starters_list %}
+            <div class="bg-plDark/90 backdrop-blur p-3 rounded-xl border border-emerald-500/30 flex flex-col items-center text-center relative shadow-md">
+                
+                <!-- شارات الكابتن -->
+                {% if player.is_captain %}
+                <span class="absolute top-1 right-1 bg-plPink text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow">C</span>
+                {% elif player.is_vice %}
+                <span class="absolute top-1 right-1 bg-gray-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow">VC</span>
+                {% endif %}
+
+                <!-- اسم اللاعب والمراكز -->
+                <span class="text-xs font-bold text-white truncate w-full mt-1">{{ player.name }}</span>
+                <span class="text-[10px] text-gray-400">{{ player.position_display }} - {{ player.club_name }}</span>
+
+                <!-- نقاط اللاعب في هذه الجولة -->
+                <div class="mt-2 bg-emerald-950/80 border border-emerald-500/40 text-plGreen text-xs font-black px-2 py-0.5 rounded-md">
+                    {{ player.points }} ن
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- دكة الاحتياط -->
+        <div class="mt-8 pt-6 border-t border-emerald-800/60">
+            <h3 class="text-center text-xs font-bold text-gray-300 mb-3 uppercase tracking-wider">🪑 دكة الاحتياط</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 opacity-90">
+                {% for player in bench_players %}
+                <div class="bg-plDark/60 p-2.5 rounded-xl border border-gray-700 flex flex-col items-center text-center">
+                    <span class="text-xs font-bold text-gray-300 truncate w-full">{{ player.name }}</span>
+                    <span class="text-[10px] text-gray-400">{{ player.position_display }}</span>
+                    <span class="text-xs text-emerald-400 font-bold mt-1">
+                        {{ player.points }} ن
+                    </span>
+                </div>
+                {% empty %}
+                <p class="text-xs text-gray-400 col-span-full text-center">لا يوجد احتياطيون.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-[#240028] p-10 rounded-2xl text-center text-gray-400 border border-gray-800">
+        لم يتم العثور على تشكيلة مسجلة لهذه الجولة.
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
