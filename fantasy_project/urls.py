@@ -8,5 +8,5 @@ urlpatterns = [
     path('', include('fantasy.urls')),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# ربط مسار الميديا لعرض الصور المرفوعة أونلاين على الهوست دائماً
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

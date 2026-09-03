@@ -76,11 +76,12 @@ TIME_ZONE = 'Africa/Cairo'
 USE_I18N = True
 USE_TZ = True
 
-# Static & Media Files
+# Static Files
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# Media Files Config
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
