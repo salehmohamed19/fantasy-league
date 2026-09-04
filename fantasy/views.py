@@ -1147,3 +1147,33 @@ def view_closed_squad(request, gw_id):
         'show_points': show_points,
     }
     return render(request, 'closed_squad_view.html', context)
+
+from django.shortcuts import render, get_object_or_404
+from django.db.models import Q, Sum, Count
+from .models import Player, Match
+
+def player_detail_modal(request, player_id):
+    player = get_object_or_404(Player, id=player_id)
+    
+    # جلب الإحصائيات التجميعية للاعب متوافقة مع الموديلات المعدلة
+    stats = player.gameweek_stats.aggregate(
+        total_points=Sum('points'),
+        total_goals=Sum('goals'),
+        total_assists=Sum('assists'),
+        clean_sheets=Count('id', filter=Q(clean_sheet=True)), # حساب عدد أوقات الكلين شيت
+        matches_played=Count('id', filter=Q(played=True))     # حساب عدد المباريات بدلاً من الدقائق
+    )
+    
+    # جلب القادم من المباريات لخريطة الصعوبة (آخر 3 مباريات قادمة)
+    next_matches = Match.objects.filter(
+        Q(home_team=player.team) | Q(away_team=player.team),
+        is_finished=False
+    ).order_by('match_date')[:3]
+
+    context = {
+        'player': player,
+        'stats': stats,
+        'next_matches': next_matches,
+        'ownership': player.ownership_percentage(),
+    }
+    return render(request, 'partials/player_modal.html', context)

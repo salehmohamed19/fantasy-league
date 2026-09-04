@@ -6,6 +6,7 @@ from django.dispatch import receiver
 from django.db.models import Sum
 from cloudinary.models import CloudinaryField
 
+
 # 1. الدوري والبطولات
 class League(models.Model):
     name = models.CharField(max_length=100, verbose_name="اسم البطولة")
@@ -21,13 +22,32 @@ class League(models.Model):
 class RealTeam(models.Model):
     league = models.ForeignKey(League, on_delete=models.CASCADE, related_name='teams', verbose_name="الدوري")
     name = models.CharField(max_length=100, verbose_name="اسم الفريق")
-    logo = CloudinaryField('image', folder='team_logos', null=True, blank=True)
+    logo = CloudinaryField('شعار الفريق', folder='team_logos', null=True, blank=True)
 
     def __str__(self):
         return f"{self.name} ({self.league.name})"
 
 
-# 3. اللاعبون الحقيقيون
+# 3. جدول المباريات
+class Match(models.Model):
+    league = models.ForeignKey(League, on_delete=models.CASCADE, related_name='matches', verbose_name="الدوري")
+    gameweek = models.ForeignKey('Gameweek', on_delete=models.CASCADE, related_name='matches', verbose_name="الجولة")
+    home_team = models.ForeignKey(RealTeam, on_delete=models.CASCADE, related_name='home_matches', verbose_name="الفريق المستضيف")
+    away_team = models.ForeignKey(RealTeam, on_delete=models.CASCADE, related_name='away_matches', verbose_name="الفريق الضيف")
+    match_date = models.DateTimeField(verbose_name="تاريخ ووقت المباراة")
+    is_finished = models.BooleanField(default=False, verbose_name="انتهت المباراة")
+    home_score = models.PositiveIntegerField(default=0, verbose_name="أهداف المستضيف")
+    away_score = models.PositiveIntegerField(default=0, verbose_name="أهداف الضيف")
+
+    class Meta:
+        verbose_name = "مباراة"
+        verbose_name_plural = "المباريات"
+
+    def __str__(self):
+        return f"{self.home_team.name} vs {self.away_team.name} (الجولة {self.gameweek.number})"
+
+
+# 4. اللاعبون الحقيقيون
 class Player(models.Model):
     DETAILED_POSITION_CHOICES = [
         ('GK', 'حارس مرمى'),
@@ -49,14 +69,20 @@ class Player(models.Model):
 
     team = models.ForeignKey(RealTeam, on_delete=models.CASCADE, related_name='players', verbose_name="الفريق")
     name = models.CharField(max_length=100, verbose_name="اسم اللاعب")
+    photo = CloudinaryField('صورة اللاعب', folder='player_photos', null=True, blank=True)
     position = models.CharField(max_length=5, choices=DETAILED_POSITION_CHOICES, verbose_name="المركز التفصيلي")
     price = models.DecimalField(max_digits=4, decimal_places=1, default=5.0, verbose_name="السعر")
 
+    # حالة العقوبات والإيقاف
     is_suspended = models.BooleanField(default=False, verbose_name="معاقب/موقوف")
     suspended_matches_left = models.PositiveIntegerField(default=0, verbose_name="المباريات المتبقية للإيقاف")
-    
     has_yellow_card = models.BooleanField(default=False, verbose_name="يوجد إنذار سابق (أصفر)")
     has_red_card = models.BooleanField(default=False, verbose_name="حاصل على كارت أحمر / طرد")
+
+    # حالة الإصابة والأخبار
+    is_injured = models.BooleanField(default=False, verbose_name="مصاب / مشكوك بمشاركته")
+    injury_news = models.CharField(max_length=255, blank=True, null=True, verbose_name="تفاصيل الإصابة")
+    chance_of_playing = models.PositiveIntegerField(default=100, verbose_name="نسبة احتمالية المشاركة %")
 
     @property
     def main_category(self):
@@ -77,13 +103,31 @@ class Player(models.Model):
     def total_red_cards(self):
         return self.gameweek_stats.filter(red_card=True).count()
 
+    def ownership_percentage(self):
+        total_teams = UserFantasyTeam.objects.filter(league=self.team.league).count()
+        if total_teams == 0:
+            return 0.0
+        teams_with_player = UserSquad.objects.filter(
+            user_team__league=self.team.league,
+            starting_players=self
+        ).values('user_team').distinct().count()
+        return round((teams_with_player / total_teams) * 100, 1)
+
+    def total_points(self):
+        return self.gameweek_stats.aggregate(Sum('points'))['points__sum'] or 0
+
+    def total_goals(self):
+        return self.gameweek_stats.aggregate(Sum('goals'))['goals__sum'] or 0
+
+    def total_assists(self):
+        return self.gameweek_stats.aggregate(Sum('assists'))['assists__sum'] or 0
+
     def process_gameweek_suspension(self):
-        """خصم جولة إيقاف وتطهير عقوبة اللاعب عند الانتهاء"""
         if self.suspended_matches_left > 0:
             self.suspended_matches_left -= 1
             if self.suspended_matches_left == 0:
                 self.is_suspended = False
-                self.has_red_card = False  # إزالة شارة الأحمر بعد انقضاء الإيقاف
+                self.has_red_card = False
             self.save(update_fields=['suspended_matches_left', 'is_suspended', 'has_red_card'])
 
     def save(self, *args, **kwargs):
@@ -95,10 +139,11 @@ class Player(models.Model):
         return f"{self.name} ({self.get_position_display()}) - {self.team.name}"
 
 
-# 4. الجولات
+# 5. الجولات
 class Gameweek(models.Model):
     league = models.ForeignKey(League, on_delete=models.CASCADE, verbose_name="الدوري")
     number = models.PositiveIntegerField(verbose_name="رقم الجولة")
+    deadline = models.DateTimeField(null=True, blank=True, verbose_name="موعد إغلاق التشكيلة (Deadline)")
     is_open = models.BooleanField(default=True, verbose_name="باب التغيير مفتوح")
     is_finished = models.BooleanField(default=False, verbose_name="مغلقة/منتهية")
     is_published = models.BooleanField(default=False, verbose_name="تم اعتماد ونشر النقاط")
@@ -107,7 +152,6 @@ class Gameweek(models.Model):
         unique_together = ('league', 'number')
 
     def save(self, *args, **kwargs):
-        # التحقق مما إذا كانت الجولة تُغلق/تُنهى الآن لخصم الإيقافات
         is_newly_finished = False
         if self.pk:
             old_instance = Gameweek.objects.filter(pk=self.pk).first()
@@ -118,7 +162,6 @@ class Gameweek(models.Model):
 
         super().save(*args, **kwargs)
 
-        # 🟢 عند إنهاء الجولة: خصم جولة إيقاف واحدة من كافة اللاعبين الموقوفين في البطولة
         if is_newly_finished:
             suspended_players = Player.objects.filter(
                 team__league=self.league,
@@ -132,7 +175,7 @@ class Gameweek(models.Model):
         return f"الجولة {self.number} - {self.league.name}"
 
 
-# 5. إحصائيات اللاعب في الجولة
+# 6. إحصائيات اللاعب في الجولة
 class PlayerGameweekStat(models.Model):
     SUSPENSION_REASONS = [
         ('NONE', 'لا يوجد'),
@@ -145,32 +188,32 @@ class PlayerGameweekStat(models.Model):
     gameweek = models.ForeignKey(Gameweek, on_delete=models.CASCADE, verbose_name="الجولة")
     team = models.ForeignKey(RealTeam, on_delete=models.CASCADE, null=True, blank=True, verbose_name="الفريق")
 
-    played = models.BooleanField(default=False, verbose_name="شارك في المباراة")
+    played = models.BooleanField(default=False, verbose_name="شارك في المباراة (+2)")
     goals = models.PositiveIntegerField(default=0, verbose_name="الأهداف")
-    assists = models.PositiveIntegerField(default=0, verbose_name="الأسيست")
+    assists = models.PositiveIntegerField(default=0, verbose_name="الأسيست (+3)")
     clean_sheet = models.BooleanField(default=False, verbose_name="كلين شيت")
     
-    yellow_card = models.BooleanField(default=False, verbose_name="كارت أصفر للجولة")
-    red_card = models.BooleanField(default=False, verbose_name="كارت أحمر للجولة")
+    penalties_saved = models.PositiveIntegerField(default=0, verbose_name="ضربات جزاء تصدى لها الحارس (+5)")
+    penalties_missed = models.PositiveIntegerField(default=0, verbose_name="ضربات الجزاء الضائعة (-2)")
+    own_goals = models.PositiveIntegerField(default=0, verbose_name="أهداف عكسية مرماها (-2)")
 
-    penalties_taken = models.PositiveIntegerField(default=0, verbose_name="ضربات الجزاء المسددة")
-    penalties_missed = models.PositiveIntegerField(default=0, verbose_name="ضربات الجزاء الضائعة")
+    yellow_card = models.BooleanField(default=False, verbose_name="كارت أصفر للجولة (-1)")
+    red_card = models.BooleanField(default=False, verbose_name="كارت أحمر للجولة (-3)")
 
     suspension_reason = models.CharField(max_length=20, choices=SUSPENSION_REASONS, default='NONE', verbose_name="سبب العقوبة")
     suspension_matches = models.PositiveIntegerField(default=0, verbose_name="عدد مباريات الإيقاف")
     suspension_notes = models.TextField(blank=True, null=True, verbose_name="ملاحظات تفاصيل العقوبة")
 
-    points = models.IntegerField(default=0, verbose_name="النقاط")
+    points = models.IntegerField(default=0, verbose_name="النقاط الإجمالية")
 
     class Meta:
         unique_together = ('player', 'gameweek')
 
     def save(self, *args, **kwargs):
-        # 1. المزامنة التلقائية للفريق من موديل اللاعب
         if not self.team_id or self.team != self.player.team:
             self.team = self.player.team
 
-        # 2. إدارة حالة الإيقاف والكروت في موديل Player
+        # إدارة حالة العقوبات والكروت
         player_updated = False
 
         if self.suspension_matches > 0:
@@ -183,13 +226,11 @@ class PlayerGameweekStat(models.Model):
             self.player.has_yellow_card = False
             player_updated = True
         elif self.yellow_card:
-            # لو اللاعب معاه إنذار سابق بالفعل من جولة سابقة
             if self.player.has_yellow_card:
                 self.player.has_red_card = True
                 self.player.has_yellow_card = False
                 self.red_card = True
                 self.yellow_card = False
-                # إنذارين تراكميين = طرد وإيقاف تلقائي جولة واحدة
                 if self.suspension_matches == 0:
                     self.suspension_matches = 1
                     self.player.is_suspended = True
@@ -201,36 +242,66 @@ class PlayerGameweekStat(models.Model):
         if player_updated:
             self.player.save()
 
-        # 3. حساب النقاط
-        pts = (self.goals * 4) + (self.assists * 3)
+        # ==========================================
+        # خوارزمية حساب النقاط التفصيلية
+        # ==========================================
+        pts = 0
+        category = self.player.main_category
+
+        # 1. نقاط المشاركة (+2 فورية)
+        if self.played:
+            pts += 2
+
+        # 2. حساب أهداف اللاعب حسب المركز
+        if category in ['GK', 'DEF']:
+            pts += (self.goals * 6)
+        elif category == 'MID':
+            pts += (self.goals * 5)
+        elif category == 'FWD':
+            pts += (self.goals * 4)
+
+        # 3. الأسيست (+3 لجميع المراكز)
+        pts += (self.assists * 3)
+
+        # 4. النظافة التهديفية (Clean Sheet)
         if self.clean_sheet:
-            category = self.player.main_category
             if category in ['GK', 'DEF']:
                 pts += 4
             elif category == 'MID':
                 pts += 1
 
-        if self.yellow_card:
-            pts -= 1
-        if self.red_card:
-            pts -= 3
+        # 5. ضربات الجزاء (+5 للتصدي للحارس / -2 للإهدار)
+        if category == 'GK':
+            pts += (self.penalties_saved * 5)
+        pts -= (self.penalties_missed * 2)
 
-        pts -= (self.penalties_missed * 1)
+        # 6. الخصومات والعقوبات
+        pts -= (self.own_goals * 2)  # الهدف العكسي -2
+        if self.yellow_card:
+            pts -= 1                  # الكارت الأصفر -1
+        if self.red_card:
+            pts -= 3                  # الكارت الأحمر -3
+
         self.points = pts
 
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"إحصائيات {self.player.name} - {self.gameweek}"
+        return f"إحصائيات {self.player.name} - {self.gameweek} ({self.points} نقطة)"
 
 
-# 6. فريق المشترك
+# 7. فريق المشترك
 class UserFantasyTeam(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fantasy_teams', verbose_name="المستخدم")
     league = models.ForeignKey(League, on_delete=models.CASCADE, related_name='user_teams', verbose_name="الدوري")
     name = models.CharField(max_length=100, verbose_name="اسم فرقتك")
     budget = models.DecimalField(max_digits=5, decimal_places=1, default=100.0, verbose_name="الميزانية المتبقية")
     total_points = models.IntegerField(default=0, verbose_name="إجمالي النقاط")
+
+    triple_captain_used = models.BooleanField(default=False, verbose_name="تم استخدام Triple Captain")
+    bench_boost_used = models.BooleanField(default=False, verbose_name="تم استخدام Bench Boost")
+    free_hit_used = models.BooleanField(default=False, verbose_name="تم استخدام Free Hit")
+    wildcard_used = models.BooleanField(default=False, verbose_name="تم استخدام Wildcard")
 
     class Meta:
         unique_together = ('user', 'league')
@@ -239,8 +310,16 @@ class UserFantasyTeam(models.Model):
         return f"{self.name} ({self.user.username}) - {self.league.name}"
 
 
-# 7. تشكيلة المستخدم
+# 8. تشكيلة المستخدم للجولة
 class UserSquad(models.Model):
+    CHIP_CHOICES = [
+        ('NONE', 'بدون خاصية'),
+        ('TC', 'Triple Captain (x3)'),
+        ('BB', 'Bench Boost'),
+        ('FH', 'Free Hit'),
+        ('WC', 'Wildcard'),
+    ]
+
     user_team = models.ForeignKey(UserFantasyTeam, on_delete=models.CASCADE, related_name='squads', verbose_name="فريق المستخدم")
     gameweek = models.ForeignKey(Gameweek, on_delete=models.CASCADE, verbose_name="الجولة")
     starting_players = models.ManyToManyField(Player, related_name='starters', verbose_name="الأساسيين (6)")
@@ -263,6 +342,7 @@ class UserSquad(models.Model):
         verbose_name="نائب الكابتن"
     )
 
+    active_chip = models.CharField(max_length=10, choices=CHIP_CHOICES, default='NONE', verbose_name="الخاصية المفعّلة")
     transfers_made = models.PositiveIntegerField(default=0, verbose_name="عدد التبديلات المنجزة")
     transfers_cost = models.IntegerField(default=0, verbose_name="خصم التغييرات")
     is_saved = models.BooleanField(default=False, verbose_name="تم حفظ التشكيلة")
@@ -280,9 +360,27 @@ class UserSquad(models.Model):
         return f"تشكيلة {self.user_team.name} - {self.gameweek}"
 
 
+# 9. مركز الأخبار والتحديثات
+class NewsAndUpdate(models.Model):
+    league = models.ForeignKey(League, on_delete=models.CASCADE, related_name='news', verbose_name="الدوري")
+    title = models.CharField(max_length=200, verbose_name="عنوان الخبر")
+    content = models.TextField(verbose_name="محتوى الخبر")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ النشر")
+    is_pinned = models.BooleanField(default=False, verbose_name="خبر مثبت")
+
+    class Meta:
+        ordering = ['-is_pinned', '-created_at']
+        verbose_name = "خبر / تحديث"
+        verbose_name_plural = "مركز الأخبار"
+
+    def __str__(self):
+        return self.title
+
+
+# 10. بروفايل المستخدم
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', verbose_name="المستخدم")
-    avatar = CloudinaryField('avatar', folder='avatars/', null=True, blank=True)
+    avatar = CloudinaryField('الصورة الشخصية', folder='avatars/', null=True, blank=True)
 
     def __str__(self):
         return f"Profile of {self.user.username}"
