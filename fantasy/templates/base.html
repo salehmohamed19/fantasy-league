@@ -31,25 +31,25 @@
 
     <!-- Navbar Header -->
     <header class="bg-[#240028] border-b-4 border-plGreen p-3 sm:p-4 shadow-xl sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+        <div class="max-w-6xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-3">
             
             <!-- الجزء الأيمن: اللوجو وروابط الصفحات الأساسية -->
-            <div class="flex flex-col sm:flex-row items-center gap-3 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+            <div class="flex flex-col sm:flex-row items-center gap-3 lg:gap-6 w-full lg:w-auto justify-between lg:justify-start">
                 <!-- Logo & Title -->
                 <a href="{% url 'squad_builder' %}" class="text-xl sm:text-2xl font-black text-plGreen tracking-wider flex items-center gap-2 hover:opacity-90 transition flex-shrink-0">
                     <img src="{% static 'images/VOP_logo_transparent.png' %}" alt="اتحاد المحترفين" class="w-8 h-8 sm:w-10 sm:h-10 object-contain">
                     <span>FANTASY LEAGUE</span>
                 </a>
 
-                <!-- روابط Navigation الرئيسية (جهة اليمين بجانب اللوجو) -->
-                <nav class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm font-bold flex-wrap justify-center sm:justify-start border-t sm:border-t-0 border-gray-800 pt-2 sm:pt-0 w-full md:w-auto">
+                <!-- روابط Navigation الرئيسية -->
+                <nav class="flex items-center gap-2 sm:gap-3 md:gap-4 text-xs sm:text-sm font-bold flex-wrap justify-center sm:justify-start border-t sm:border-t-0 border-gray-800 pt-2 sm:pt-0 w-full sm:w-auto">
                     <a href="{% url 'squad_builder' %}" class="hover:text-plGreen transition px-1 py-1 whitespace-nowrap">تشكيلتي والسوق</a>
                     <a href="{% url 'leaderboard' %}" class="hover:text-plGreen transition px-1 py-1 whitespace-nowrap">🏆 الترتيب</a>
                     <a href="{% url 'leagues_history' %}" class="hover:text-plGreen transition px-1 py-1 whitespace-nowrap">📅 أرشيف الجولات</a>
                     
                     {% if user.is_staff %}
-                    <!-- رابط لوحة أدمن إدخال الإحصائيات: يظهر في السطر التالي على الموبايل وبجانب الأرشيف تماماً على الشاشات الكبيرة -->
-                    <a href="{% url 'enter_match_stats' %}" class="w-full sm:w-auto text-center justify-center bg-plPink/20 text-plPink hover:bg-plPink hover:text-white border border-plPink/40 transition px-2 py-1 rounded-lg whitespace-nowrap flex items-center gap-1 mt-1 sm:mt-0">
+                    <!-- رابط لوحة أدمن إدخال الإحصائيات (بجانب أرشيف الجولات في الشاشات الكبيرة) -->
+                    <a href="{% url 'enter_match_stats' %}" class="bg-plPink/20 text-plPink hover:bg-plPink hover:text-white border border-plPink/40 transition px-2 py-1 rounded-lg whitespace-nowrap flex items-center gap-1 inline-flex">
                         <span>⚙️</span>
                         <span>إدخال الإحصائيات</span>
                     </a>
@@ -58,7 +58,7 @@
             </div>
 
             <!-- الجزء الأيسر: عناصر الحساب والبطولات والقائمة المنسدلة -->
-            <div class="flex items-center justify-center md:justify-end gap-2 sm:gap-3 text-xs sm:text-sm font-bold flex-wrap w-full md:w-auto border-t md:border-t-0 border-gray-800/60 pt-2 md:pt-0">
+            <div class="flex items-center justify-center lg:justify-end gap-2 sm:gap-3 text-xs sm:text-sm font-bold flex-wrap w-full lg:w-auto border-t lg:border-t-0 border-gray-800/60 pt-2 lg:pt-0">
                 {% if user.is_authenticated %}
                 <!-- مبدّل البطولات وزر الانضمام -->
                 <div class="flex items-center gap-1 bg-plDark/60 p-1 rounded-xl border border-gray-700">
