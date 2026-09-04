@@ -1150,25 +1150,55 @@ def view_closed_squad(request, gw_id):
 # ==========================================
 
 def player_detail_modal(request, player_id):
+    """عرض تفاصيل وإحصائيات اللاعب داخل نافذة منبثقة مع الحماية من أخطاء السيرفر 500"""
     player = get_object_or_404(Player, id=player_id)
     
-    stats = player.gameweek_stats.aggregate(
-        total_points=Sum('points'),
-        total_goals=Sum('goals'),
-        total_assists=Sum('assists'),
-        clean_sheets=Count('id', filter=Q(clean_sheet=True)),
-        matches_played=Count('id', filter=Q(played=True))
-    )
-    
-    next_matches = Match.objects.filter(
-        Q(home_team=player.team) | Q(away_team=player.team),
-        is_finished=False
-    ).order_by('match_date')[:3]
+    # جلب التجميع بأمان
+    try:
+        stats = player.gameweek_stats.aggregate(
+            total_points=Sum('points'),
+            total_goals=Sum('goals'),
+            total_assists=Sum('assists'),
+            clean_sheets=Count('id', filter=Q(clean_sheet=True)),
+            matches_played=Count('id', filter=Q(played=True))
+        )
+    except Exception:
+        stats = {
+            'total_points': 0,
+            'total_goals': 0,
+            'total_assists': 0,
+            'clean_sheets': 0,
+            'matches_played': 0,
+        }
+
+    # جلب المباريات القادمة بأمان
+    try:
+        next_matches = Match.objects.filter(
+            Q(home_team=player.team) | Q(away_team=player.team),
+            is_finished=False
+        ).order_by('match_date')[:3]
+    except Exception:
+        next_matches = []
+
+    # جلب نسبة الملكية بأمان
+    ownership = 0
+    if hasattr(player, 'ownership_percentage'):
+        try:
+            ownership = player.ownership_percentage()
+        except Exception:
+            ownership = 0
 
     context = {
         'player': player,
         'stats': stats,
         'next_matches': next_matches,
-        'ownership': player.ownership_percentage(),
+        'ownership': ownership,
     }
-    return render(request, 'partials/player_modal.html', context)
+    
+    # نحدد القالب المناسب حسب بنية المجلدات لديك
+    template_name = 'fantasy/partials/player_modal.html'
+    
+    if request.headers.get('HX-Request'):
+        return render(request, template_name, context)
+        
+    return render(request, template_name, context)
