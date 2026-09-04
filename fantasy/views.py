@@ -9,11 +9,11 @@ from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
-from django.db.models import Sum, Prefetch, Q, Max
+from django.db.models import Sum, Prefetch, Q, Count
 from django.views.decorators.csrf import csrf_protect
 
 from .models import (
-    League, RealTeam, Player, Gameweek, 
+    League, RealTeam, Player, Gameweek, Match,
     PlayerGameweekStat, UserFantasyTeam, UserSquad, UserProfile
 )
 from .forms import UserUpdateForm, ProfileUpdateForm, TeamNameUpdateForm
@@ -137,14 +137,11 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
 
     all_squad_players = list(squad.starting_players.all()) + list(squad.substitutes.all())
 
-    stats = PlayerGameweekStat.objects.filter(gameweek=current_gameweek)
-    player_stats_map = {stat.player_id: stat for stat in stats}
+    # جلب الإحصائيات الخاصة بالجولات المنشورة فقط لتفادي جلب أرقام غير معتمدة
+    stats = PlayerGameweekStat.objects.filter(gameweek__league=active_league, gameweek__is_published=True)
+    player_stats_map = {stat.player_id: stat for stat in stats if stat.gameweek_id == current_gameweek.id}
 
-    total_stats = PlayerGameweekStat.objects.filter(
-        gameweek__league=active_league,
-        gameweek__is_published=True
-    ).values('player_id').annotate(total=Sum('points'))
-
+    total_stats = stats.values('player_id').annotate(total=Sum('points'))
     player_total_points = {stat['player_id']: stat['total'] for stat in total_stats}
 
     def attach_status_info(player):
@@ -454,9 +451,8 @@ def remove_player_from_squad(request, player_id):
 
             squad.save()
 
+            # إرجاع ثمن اللاعب فقط إلى الميزانية المتبقية
             user_team.budget += player.price
-            if user_team.budget > Decimal('100.0'):
-                user_team.budget = Decimal('100.0')
             user_team.save()
 
     if request.headers.get('HX-Request'):
@@ -1148,23 +1144,22 @@ def view_closed_squad(request, gw_id):
     }
     return render(request, 'closed_squad_view.html', context)
 
-from django.shortcuts import render, get_object_or_404
-from django.db.models import Q, Sum, Count
-from .models import Player, Match
+
+# ==========================================
+# 7. المودال والنوافذ المنبثقة للبيانات
+# ==========================================
 
 def player_detail_modal(request, player_id):
     player = get_object_or_404(Player, id=player_id)
     
-    # جلب الإحصائيات التجميعية للاعب متوافقة مع الموديلات المعدلة
     stats = player.gameweek_stats.aggregate(
         total_points=Sum('points'),
         total_goals=Sum('goals'),
         total_assists=Sum('assists'),
-        clean_sheets=Count('id', filter=Q(clean_sheet=True)), # حساب عدد أوقات الكلين شيت
-        matches_played=Count('id', filter=Q(played=True))     # حساب عدد المباريات بدلاً من الدقائق
+        clean_sheets=Count('id', filter=Q(clean_sheet=True)),
+        matches_played=Count('id', filter=Q(played=True))
     )
     
-    # جلب القادم من المباريات لخريطة الصعوبة (آخر 3 مباريات قادمة)
     next_matches = Match.objects.filter(
         Q(home_team=player.team) | Q(away_team=player.team),
         is_finished=False

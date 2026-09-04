@@ -140,6 +140,7 @@
         text-overflow: ellipsis !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important;
+        cursor: pointer;
     }
 
     @media (min-width: 640px) {
@@ -268,7 +269,11 @@
                                 {% endif %}
 
                                 <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
-                                     class="w-full h-full p-1">
+                                     class="w-full h-full p-1 cursor-pointer"
+                                     hx-get="{% url 'player_detail_modal' player.id %}"
+                                     hx-target="#playerModal"
+                                     data-bs-toggle="modal"
+                                     data-bs-target="#playerModal">
                                     {% if player.team.logo %}
                                         <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain">
                                     {% else %}
@@ -284,7 +289,13 @@
                                 <span class="pitch-vice-captain-badge">V</span>
                                 {% endif %}
                             </div>
-                            <div class="pitch-name-tag">{{ player.name }}</div>
+                            <div class="pitch-name-tag"
+                                 hx-get="{% url 'player_detail_modal' player.id %}"
+                                 hx-target="#playerModal"
+                                 data-bs-toggle="modal"
+                                 data-bs-target="#playerModal">
+                                {{ player.name }}
+                            </div>
                             <div class="pitch-stats-tag">
                                 <span class="text-[8px] sm:text-[9px] text-yellow-300 font-extrabold bg-black/60 px-1 sm:px-1.5 py-0.5 rounded border border-white/10">{{ player.price }}M</span>
                                 <span class="bg-plGreen text-plDark text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded-full shadow">{{ player.current_pts|default:"0" }} pts</span>
@@ -316,7 +327,11 @@
                                 {% endif %}
 
                                 <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
-                                     class="w-full h-full p-1">
+                                     class="w-full h-full p-1 cursor-pointer"
+                                     hx-get="{% url 'player_detail_modal' player.id %}"
+                                     hx-target="#playerModal"
+                                     data-bs-toggle="modal"
+                                     data-bs-target="#playerModal">
                                     {% if player.team.logo %}
                                         <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain">
                                     {% else %}
@@ -332,7 +347,13 @@
                                 <span class="pitch-vice-captain-badge">V</span>
                                 {% endif %}
                             </div>
-                            <div class="pitch-name-tag">{{ player.name }}</div>
+                            <div class="pitch-name-tag"
+                                 hx-get="{% url 'player_detail_modal' player.id %}"
+                                 hx-target="#playerModal"
+                                 data-bs-toggle="modal"
+                                 data-bs-target="#playerModal">
+                                {{ player.name }}
+                            </div>
                             <div class="pitch-stats-tag">
                                 <span class="text-[8px] sm:text-[9px] text-yellow-300 font-extrabold bg-black/60 px-1 sm:px-1.5 py-0.5 rounded border border-white/10">{{ player.price }}M</span>
                                 <span class="bg-plGreen text-plDark text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded-full shadow">{{ player.current_pts|default:"0" }} pts</span>
@@ -364,7 +385,11 @@
                                 {% endif %}
 
                                 <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
-                                     class="w-full h-full p-1">
+                                     class="w-full h-full p-1 cursor-pointer"
+                                     hx-get="{% url 'player_detail_modal' player.id %}"
+                                     hx-target="#playerModal"
+                                     data-bs-toggle="modal"
+                                     data-bs-target="#playerModal">
                                     {% if player.team.logo %}
                                         <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain">
                                     {% else %}
@@ -380,7 +405,13 @@
                                 <span class="pitch-vice-captain-badge">V</span>
                                 {% endif %}
                             </div>
-                            <div class="pitch-name-tag">{{ player.name }}</div>
+                            <div class="pitch-name-tag"
+                                 hx-get="{% url 'player_detail_modal' player.id %}"
+                                 hx-target="#playerModal"
+                                 data-bs-toggle="modal"
+                                 data-bs-target="#playerModal">
+                                {{ player.name }}
+                            </div>
                             <div class="pitch-stats-tag">
                                 <span class="text-[8px] sm:text-[9px] text-yellow-300 font-extrabold bg-black/60 px-1 sm:px-1.5 py-0.5 rounded border border-white/10">{{ player.price }}M</span>
                                 <span class="bg-plGreen text-plDark text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded-full shadow">{{ player.current_pts|default:"0" }} pts</span>
@@ -412,7 +443,11 @@
                                 {% endif %}
 
                                 <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
-                                     class="w-full h-full p-1">
+                                     class="w-full h-full p-1 cursor-pointer"
+                                     hx-get="{% url 'player_detail_modal' player.id %}"
+                                     hx-target="#playerModal"
+                                     data-bs-toggle="modal"
+                                     data-bs-target="#playerModal">
                                     {% if player.team.logo %}
                                         <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain">
                                     {% else %}
@@ -428,7 +463,13 @@
                                 <span class="pitch-vice-captain-badge">V</span>
                                 {% endif %}
                             </div>
-                            <div class="pitch-name-tag">{{ player.name }}</div>
+                            <div class="pitch-name-tag"
+                                 hx-get="{% url 'player_detail_modal' player.id %}"
+                                 hx-target="#playerModal"
+                                 data-bs-toggle="modal"
+                                 data-bs-target="#playerModal">
+                                {{ player.name }}
+                            </div>
                             <div class="pitch-stats-tag">
                                 <span class="text-[8px] sm:text-[9px] text-yellow-300 font-extrabold bg-black/60 px-1 sm:px-1.5 py-0.5 rounded border border-white/10">{{ player.price }}M</span>
                                 <span class="bg-plGreen text-plDark text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded-full shadow">{{ player.current_pts|default:"0" }} pts</span>
@@ -521,7 +562,11 @@
                             class="pitch-delete-btn">✕</button>
                     {% endif %}
 
-                    <div class="relative">
+                    <div class="relative cursor-pointer"
+                         hx-get="{% url 'player_detail_modal' player.id %}"
+                         hx-target="#playerModal"
+                         data-bs-toggle="modal"
+                         data-bs-target="#playerModal">
                         <div style="width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;" class="p-1">
                             {% if player.team.logo %}
                                 <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain">
@@ -532,7 +577,11 @@
                         <span class="pitch-pos-badge">{{ player.main_category|default:player.position|default:"SUB" }}</span>
                     </div>
                     
-                    <span class="text-[11px] text-gray-100 font-extrabold mt-1.5 w-full truncate text-center">
+                    <span class="text-[11px] text-gray-100 font-extrabold mt-1.5 w-full truncate text-center cursor-pointer hover:text-yellow-400 transition"
+                          hx-get="{% url 'player_detail_modal' player.id %}"
+                          hx-target="#playerModal"
+                          data-bs-toggle="modal"
+                          data-bs-target="#playerModal">
                         {{ player.name }}
                     </span>
                     
@@ -646,6 +695,13 @@
         {% endif %}
     </div>
 
+</div>
+
+<!-- حاوية المودال الديناميكية -->
+<div class="modal fade" id="playerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <!-- يتم التحميل هنا عبر HTMX -->
+    </div>
 </div>
 
 <script>

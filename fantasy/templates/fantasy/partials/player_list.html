@@ -3,7 +3,11 @@
     <div class="flex items-center justify-between gap-2 bg-gray-800/90 p-2.5 rounded-xl border border-gray-700/80 hover:border-plGreen transition-all duration-200">
         
         <!-- معلومات اللاعب والشعار -->
-        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+        <div class="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
+             hx-get="{% url 'player_detail_modal' player.id %}"
+             hx-target="#playerModal"
+             data-bs-toggle="modal"
+             data-bs-target="#playerModal">
             <!-- دائرة الشعار مع شارة المركز -->
             <div class="relative flex-shrink-0">
                 <div style="width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; color: #ffffff; border: 1.5px solid rgba(255,255,255,0.2); box-shadow: 0 2px 5px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;" class="p-0.5">
@@ -21,7 +25,7 @@
             </div>
 
             <div class="min-w-0 flex-1">
-                <span class="text-xs font-black text-white truncate block leading-snug">{{ player.name }}</span>
+                <span class="text-xs font-black text-white truncate block leading-snug hover:text-yellow-400 transition">{{ player.name }}</span>
                 <p class="text-[10px] text-gray-400 truncate mt-0.5 font-medium">{{ player.team.name }}</p>
             </div>
         </div>
