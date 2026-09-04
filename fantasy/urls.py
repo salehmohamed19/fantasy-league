@@ -30,6 +30,7 @@ urlpatterns = [
     path('admin-panel/open-next-gameweek/', views.open_next_gameweek, name='open_next_gameweek'),
     path('admin-panel/close-and-advance/', views.close_and_advance_gameweek, name='close_and_advance_gameweek'),
     path('api/get-player-previous-yellows/', views.get_player_previous_yellow_cards, name='get_player_previous_yellow_cards'),
+    path('enter-stats/', views.enter_match_stats, name='enter_match_stats'),
     
     # المصادقة والحسابات
     path('login/', LoginView.as_view(template_name='fantasy/login.html', redirect_authenticated_user=True), name='login'),

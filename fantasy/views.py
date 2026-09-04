@@ -47,7 +47,7 @@ def calculate_and_save_squad_points(gameweek):
     stats = PlayerGameweekStat.objects.filter(gameweek=gameweek)
     player_points = {stat.player_id: stat.points for stat in stats}
     
-    # 🟢 الاعتماد المباشر على حقل played=True لمعرفة من شارك فعلياً
+    # الاعتماد المباشر على حقل played=True لمعرفة من شارك فعلياً
     played_players = set(stats.filter(played=True).values_list('player_id', flat=True))
 
     squads = UserSquad.objects.filter(gameweek=gameweek).prefetch_related('starting_players')
@@ -77,7 +77,7 @@ def calculate_and_save_squad_points(gameweek):
         squad.points_earned = final_gw_points
         squad.save()
 
-        # اعادة تجميع إجمالي النقاط للجولات المنشورة فقط
+        # إعادة تجميع إجمالي النقاط للجولات المنشورة فقط
         total_pts = UserSquad.objects.filter(
             user_team=squad.user_team,
             gameweek__is_published=True
@@ -113,7 +113,7 @@ def update_player_prices_for_gameweek(gameweek):
 def get_squad_builder_context(request, user_team, active_league, current_gameweek):
     """
     دالة مساعدة مجمعة لبناء السياق (Context) لصفحة التشكيلة 
-    وحساب النقاط الإجمالية TOT لكل اللاعبين المتاحين في سوق الانتقالات
+    وحساب النقاط الإجمالية لكل اللاعبين المتاحين في سوق الانتقالات
     """
     squad = UserSquad.objects.prefetch_related(
         'starting_players__team',
@@ -149,10 +149,9 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
 
     def attach_status_info(player):
         stat = player_stats_map.get(player.id)
-        # ✅ تم التعديل للاعتماد على الاسم المفرد بحسب الموديل
         player.yellow_card = stat.yellow_card if stat else False
         player.red_card = stat.red_card if stat else False
-        player.is_suspended_now = player.is_suspended and player.suspended_matches_left > 0
+        player.is_suspended_now = player.is_suspended and getattr(player, 'suspended_matches_left', 0) > 0
         player.total_pts = player_total_points.get(player.id, 0)
 
     starters_list = []
@@ -626,7 +625,6 @@ def leaderboard(request):
 
     stats_dict = {(stat.gameweek_id, stat.player_id): stat.points for stat in stats}
     
-    # 🟢 الاعتماد على حقل played=True عند فحص مشاركة الكابتن في جدول الترتيب
     played_players_set = set(
         stats.filter(played=True).values_list('gameweek_id', 'player_id')
     )
@@ -701,8 +699,84 @@ def leaderboard(request):
 
 
 # ==========================================
-# 5. إدارة الجولات (لوحة الأدمن)
+# 5. إدارة الجولات وإحصائيات المباريات (لوحة الأدمن / Staff)
 # ==========================================
+
+@staff_member_required(login_url='login')
+def enter_match_stats(request):
+    """شاشة مخصصة للـ Staff والـ Admins لإدخال إحصائيات اللاعبين في الجولة"""
+    leagues = League.objects.filter(is_active=True)
+    selected_league_id = request.GET.get('league_id')
+    selected_gameweek_id = request.GET.get('gameweek_id')
+    selected_team_id = request.GET.get('team_id')
+
+    selected_league = None
+    selected_gameweek = None
+    selected_team = None
+    gameweeks = []
+    teams = []
+    players_data = []
+
+    if selected_league_id and selected_league_id.isdigit():
+        selected_league = get_object_or_404(League, id=int(selected_league_id))
+        gameweeks = Gameweek.objects.filter(league=selected_league).order_by('-number')
+        teams = RealTeam.objects.filter(league=selected_league)
+
+    if selected_gameweek_id and selected_gameweek_id.isdigit():
+        selected_gameweek = get_object_or_404(Gameweek, id=int(selected_gameweek_id))
+
+    if selected_team_id and selected_team_id.isdigit() and selected_gameweek:
+        selected_team = get_object_or_404(RealTeam, id=int(selected_team_id))
+        players = Player.objects.filter(team=selected_team).order_by('position')
+
+        for player in players:
+            stat, _ = PlayerGameweekStat.objects.get_or_create(
+                player=player,
+                gameweek=selected_gameweek,
+                defaults={'team': selected_team}
+            )
+            players_data.append({
+                'player': player,
+                'stat': stat
+            })
+
+    if request.method == 'POST' and selected_gameweek and selected_team:
+        for item in players_data:
+            player_id = str(item['player'].id)
+            stat = item['stat']
+
+            stat.played = f'played_{player_id}' in request.POST
+            stat.goals = int(request.POST.get(f'goals_{player_id}', 0))
+            stat.assists = int(request.POST.get(f'assists_{player_id}', 0))
+            stat.clean_sheet = f'clean_sheet_{player_id}' in request.POST
+            stat.yellow_card = f'yellow_card_{player_id}' in request.POST
+            stat.red_card = f'red_card_{player_id}' in request.POST
+            stat.penalties_taken = int(request.POST.get(f'penalties_taken_{player_id}', 0))
+            stat.penalties_missed = int(request.POST.get(f'penalties_missed_{player_id}', 0))
+            
+            stat.suspension_reason = request.POST.get(f'suspension_reason_{player_id}', 'NONE')
+            stat.suspension_matches = int(request.POST.get(f'suspension_matches_{player_id}', 0))
+            stat.suspension_notes = request.POST.get(f'suspension_notes_{player_id}', '')
+
+            stat.save()
+
+        messages.success(request, f'تم حفظ إحصائيات فريق {selected_team.name} للجولة {selected_gameweek.number} بنجاح!')
+        return redirect(f"{request.path}?league_id={selected_league_id}&gameweek_id={selected_gameweek_id}&team_id={selected_team_id}")
+
+    context = {
+        'leagues': leagues,
+        'gameweeks': gameweeks,
+        'teams': teams,
+        'selected_league_id': int(selected_league_id) if selected_league_id and selected_league_id.isdigit() else None,
+        'selected_gameweek_id': int(selected_gameweek_id) if selected_gameweek_id and selected_gameweek_id.isdigit() else None,
+        'selected_team_id': int(selected_team_id) if selected_team_id and selected_team_id.isdigit() else None,
+        'selected_gameweek': selected_gameweek,
+        'selected_team': selected_team,
+        'players_data': players_data,
+        'suspension_reasons': getattr(PlayerGameweekStat, 'SUSPENSION_REASONS', []),
+    }
+    return render(request, 'admin_enter_stats.html', context)
+
 
 @staff_member_required
 def get_player_previous_yellow_cards(request):
@@ -719,7 +793,6 @@ def get_player_previous_yellow_cards(request):
     if current_stat:
         query = query.filter(gameweek__number__lt=current_stat.gameweek.number)
 
-    # ✅ تم التعديل للفحص المباشر للقيمة البوليانية yellow_card=True
     previous_yellows = query.filter(yellow_card=True).count()
 
     return JsonResponse({
@@ -913,7 +986,6 @@ def profile_view(request):
             u_form = UserUpdateForm(request.POST, instance=user)
             p_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
 
-            # معالجة رفع الصورة مباشرة وضمان حفظها في Cloudinary
             if 'avatar' in request.FILES:
                 profile.avatar = request.FILES['avatar']
                 profile.save()
@@ -924,7 +996,6 @@ def profile_view(request):
                 messages.success(request, 'تم تحديث البيانات الشخصية والصورة بنجاح!')
                 return redirect('profile')
             else:
-                # في حال وجود خطأ في الفاليديشن للبيانات النصية، تظل الصورة محفوظة
                 if 'avatar' in request.FILES:
                     messages.success(request, 'تم تحديث الصورة بنجاح!')
                     return redirect('profile')
@@ -966,7 +1037,6 @@ def profile_view(request):
         'leagues_count': user_teams.count(),
     }
     return render(request, 'profile.html', context)
-
 
 
 @login_required
@@ -1035,7 +1105,6 @@ def view_closed_squad(request, gw_id):
         stats = PlayerGameweekStat.objects.filter(gameweek=gameweek)
         stats_dict = {st.player_id: st.points for st in stats}
         
-        # 🟢 الاعتماد على played=True لعرض حالة الكابتن المباشر/البديل في الشاشة المغلظة
         played_players_set = set(stats.filter(played=True).values_list('player_id', flat=True))
 
         captain_id = squad.captain_id

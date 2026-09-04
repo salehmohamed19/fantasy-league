@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header Section -->
+    <div class="bg-[#240028] border-b-2 border-plGreen p-4 rounded-xl shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-black text-plGreen flex items-center gap-2">
+                <span>⚙️</span>
+                <span>إدخال إحصائيات المباريات</span>
+            </h1>
+            <p class="text-xs text-gray-300 mt-1">تسجيل أهداف، صناعات، بطاقات، والعقوبات الخاصة باللاعبين لكل جولة</p>
+        </div>
+
+        {% if messages %}
+            <div class="w-full md:w-auto">
+                {% for message in messages %}
+                    <div class="px-4 py-2 rounded-lg text-xs font-bold {% if message.tags == 'error' %}bg-red-500/20 text-red-400 border border-red-500/40{% else %}bg-plGreen/20 text-plGreen border border-plGreen/40{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Filters Section (Dropdown Selectors) -->
+    <div class="bg-[#240028] p-4 rounded-xl border border-gray-800 shadow-md">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <!-- الدوري -->
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1">اختر البطولة / الدوري:</label>
+                <select name="league_id" onchange="this.form.submit()" 
+                        class="w-full bg-plDark text-white border border-gray-700 rounded-lg p-2 text-xs font-bold focus:border-plGreen outline-none">
+                    <option value="">-- اختر البطولة --</option>
+                    {% for league in leagues %}
+                        <option value="{{ league.id }}" {% if selected_league_id == league.id %}selected{% endif %}>
+                            {{ league.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- الجولة -->
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1">اختر الجولة:</label>
+                <select name="gameweek_id" onchange="this.form.submit()" {% if not selected_league_id %}disabled{% endif %}
+                        class="w-full bg-plDark text-white border border-gray-700 rounded-lg p-2 text-xs font-bold focus:border-plGreen outline-none disabled:opacity-50">
+                    <option value="">-- اختر الجولة --</option>
+                    {% for gw in gameweeks %}
+                        <option value="{{ gw.id }}" {% if selected_gameweek_id == gw.id %}selected{% endif %}>
+                            الجولة {{ gw.number }} {% if gw.is_finished %}(منتهية){% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- الفريق -->
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1">اختر الفريق Real Team:</label>
+                <select name="team_id" onchange="this.form.submit()" {% if not selected_gameweek_id %}disabled{% endif %}
+                        class="w-full bg-plDark text-white border border-gray-700 rounded-lg p-2 text-xs font-bold focus:border-plGreen outline-none disabled:opacity-50">
+                    <option value="">-- اختر الفريق --</option>
+                    {% for team in teams %}
+                        <option value="{{ team.id }}" {% if selected_team_id == team.id %}selected{% endif %}>
+                            {{ team.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Stats Table Form -->
+    {% if selected_gameweek and selected_team and players_data %}
+    <form method="POST" class="space-y-4">
+        {% csrf_token %}
+
+        <div class="overflow-x-auto bg-[#240028] border border-gray-800 rounded-xl shadow-xl">
+            <table class="w-full text-right text-xs">
+                <thead class="bg-purple-950/80 text-plGreen border-b border-gray-800 font-black">
+                    <tr>
+                        <th class="p-3">اللاعب</th>
+                        <th class="p-3 text-center">المركز</th>
+                        <th class="p-3 text-center">لعب؟</th>
+                        <th class="p-3 text-center">أهداف</th>
+                        <th class="p-3 text-center">صناعة</th>
+                        <th class="p-3 text-center">كلين شيت</th>
+                        <th class="p-3 text-center">🟨</th>
+                        <th class="p-3 text-center">🟥</th>
+                        <th class="p-3 text-center">جزاء مسجلة</th>
+                        <th class="p-3 text-center">جزاء مهدرة</th>
+                        <th class="p-3 text-center">سبب الإيقاف / ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                    {% for item in players_data %}
+                    {% with player=item.player stat=item.stat %}
+                    <tr class="hover:bg-purple-900/30 transition">
+                        
+                        <!-- اسم اللاعب وتنبيه الكروت السابقة عبر Django -->
+                        <td class="p-3 font-bold text-white whitespace-nowrap">
+                            <div>{{ player.name }}</div>
+                            {% if item.previous_yellows and item.previous_yellows > 0 %}
+                            <span class="text-[10px] text-yellow-400 font-normal block">
+                                ⚠️ الإنذارات السابقة: {{ item.previous_yellows }}
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- المركز -->
+                        <td class="p-3 text-center text-gray-400 font-bold whitespace-nowrap">
+                            {{ player.get_position_display|default:player.position }}
+                        </td>
+
+                        <!-- شارك في المباراة -->
+                        <td class="p-3 text-center">
+                            <input type="checkbox" name="played_{{ player.id }}" {% if stat.played %}checked{% endif %}
+                                   class="w-4 h-4 accent-plGreen rounded cursor-pointer">
+                        </td>
+
+                        <!-- الأهداف -->
+                        <td class="p-3 text-center">
+                            <input type="number" min="0" name="goals_{{ player.id }}" value="{{ stat.goals }}"
+                                   class="w-12 bg-plDark text-center border border-gray-700 rounded p-1 font-bold text-plGreen focus:border-plGreen outline-none">
+                        </td>
+
+                        <!-- صناعة الأهداف -->
+                        <td class="p-3 text-center">
+                            <input type="number" min="0" name="assists_{{ player.id }}" value="{{ stat.assists }}"
+                                   class="w-12 bg-plDark text-center border border-gray-700 rounded p-1 font-bold text-blue-400 focus:border-plGreen outline-none">
+                        </td>
+
+                        <!-- نظافة الشباك -->
+                        <td class="p-3 text-center">
+                            <input type="checkbox" name="clean_sheet_{{ player.id }}" {% if stat.clean_sheet %}checked{% endif %}
+                                   class="w-4 h-4 accent-plGreen rounded cursor-pointer">
+                        </td>
+
+                        <!-- كارت أصفر -->
+                        <td class="p-3 text-center">
+                            <input type="checkbox" name="yellow_card_{{ player.id }}" {% if stat.yellow_card %}checked{% endif %}
+                                   class="w-4 h-4 accent-yellow-400 rounded cursor-pointer">
+                        </td>
+
+                        <!-- كارت أحمر -->
+                        <td class="p-3 text-center">
+                            <input type="checkbox" name="red_card_{{ player.id }}" {% if stat.red_card %}checked{% endif %}
+                                   class="w-4 h-4 accent-red-500 rounded cursor-pointer">
+                        </td>
+
+                        <!-- ركلات جزاء مسجلة -->
+                        <td class="p-3 text-center">
+                            <input type="number" min="0" name="penalties_taken_{{ player.id }}" value="{{ stat.penalties_taken }}"
+                                   class="w-12 bg-plDark text-center border border-gray-700 rounded p-1 font-bold focus:border-plGreen outline-none">
+                        </td>
+
+                        <!-- ركلات جزاء مهدرة -->
+                        <td class="p-3 text-center">
+                            <input type="number" min="0" name="penalties_missed_{{ player.id }}" value="{{ stat.penalties_missed }}"
+                                   class="w-12 bg-plDark text-center border border-gray-700 rounded p-1 font-bold text-red-400 focus:border-plGreen outline-none">
+                        </td>
+
+                        <!-- الإيقافات والملاحظات -->
+                        <td class="p-3 text-center min-w-[200px]">
+                            <div class="space-y-1">
+                                <select name="suspension_reason_{{ player.id }}" class="w-full bg-plDark border border-gray-700 text-[11px] rounded p-1 outline-none text-gray-200">
+                                    <option value="NONE" {% if stat.suspension_reason == 'NONE' %}selected{% endif %}>بدون إيقاف</option>
+                                    <option value="YELLOW_CARDS" {% if stat.suspension_reason == 'YELLOW_CARDS' %}selected{% endif %}>تراكم إنذارات</option>
+                                    <option value="RED_CARD" {% if stat.suspension_reason == 'RED_CARD' %}selected{% endif %}>طرد مباشر</option>
+                                    <option value="DISCIPLINARY" {% if stat.suspension_reason == 'DISCIPLINARY' %}selected{% endif %}>عقوبة إدارية / لجنة انضباط</option>
+                                </select>
+
+                                <div class="flex gap-1">
+                                    <input type="number" min="0" placeholder="مباريات" name="suspension_matches_{{ player.id }}" value="{{ stat.suspension_matches }}"
+                                           class="w-16 bg-plDark border border-gray-700 rounded p-1 text-[11px] text-center outline-none">
+                                    <input type="text" placeholder="ملاحظات" name="suspension_notes_{{ player.id }}" value="{{ stat.suspension_notes }}"
+                                           class="w-full bg-plDark border border-gray-700 rounded p-1 text-[11px] outline-none">
+                                </div>
+                            </div>
+                        </td>
+
+                    </tr>
+                    {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end pt-2">
+            <button type="submit" 
+                    class="bg-plGreen text-plDark hover:bg-emerald-400 font-black px-6 py-2.5 rounded-xl text-sm transition shadow-lg flex items-center gap-2 cursor-pointer">
+                <span>💾</span>
+                <span>حفظ إحصائيات الفريق</span>
+            </button>
+        </div>
+
+    </form>
+    {% elif selected_gameweek and selected_team %}
+        <div class="bg-[#240028] p-8 text-center text-gray-400 border border-gray-800 rounded-xl font-bold">
+            لا يوجد لاعبين مسجلين بهذا الفريق حالياً.
+        </div>
+    {% else %}
+        <div class="bg-[#240028] p-8 text-center text-gray-400 border border-gray-800 rounded-xl font-bold">
+            يرجى تحديد (البطولة، الجولة، والفريق) للبدء في إدخال الإحصائيات.
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

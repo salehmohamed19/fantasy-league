@@ -46,6 +46,14 @@
                     <a href="{% url 'squad_builder' %}" class="hover:text-plGreen transition px-1 py-1 whitespace-nowrap">تشكيلتي والسوق</a>
                     <a href="{% url 'leaderboard' %}" class="hover:text-plGreen transition px-1 py-1 whitespace-nowrap">🏆 الترتيب</a>
                     <a href="{% url 'leagues_history' %}" class="hover:text-plGreen transition px-1 py-1 whitespace-nowrap">📅 أرشيف الجولات</a>
+                    
+                    {% if user.is_staff %}
+                    <!-- رابط لوحة أدمن إدخال الإحصائيات (يظهر فقط للأدمن والـ Staff) -->
+                    <a href="{% url 'enter_match_stats' %}" class="bg-plPink/20 text-plPink hover:bg-plPink hover:text-white border border-plPink/40 transition px-2 py-1 rounded-lg whitespace-nowrap flex items-center gap-1">
+                        <span>⚙️</span>
+                        <span>إدخال الإحصائيات</span>
+                    </a>
+                    {% endif %}
                 </nav>
             </div>
 
@@ -109,6 +117,15 @@
                             <span>👤</span>
                             <span>الملف الشخصي</span>
                         </a>
+
+                        <!-- خيار لوحة إدخال الإحصائيات داخل القائمة المنسدلة للأدمن أيضاً -->
+                        {% if user.is_staff %}
+                        <a href="{% url 'enter_match_stats' %}" 
+                           class="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-plPink hover:bg-plPink/10 transition">
+                            <span>⚙️</span>
+                            <span>إدخال الإحصائيات</span>
+                        </a>
+                        {% endif %}
 
                         <!-- خيار تسجيل الخروج -->
                         <form method="POST" action="{% url 'logout' %}" class="block w-full">
