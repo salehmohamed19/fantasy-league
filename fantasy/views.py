@@ -1150,43 +1150,48 @@ def view_closed_squad(request, gw_id):
 # ==========================================
 
 def player_detail_modal(request, player_id):
-    """عرض تفاصيل وإحصائيات اللاعب داخل نافذة منبثقة مع الحماية من أخطاء السيرفر 500"""
+    """عرض تفاصيل وإحصائيات اللاعب داخل نافذة منبثقة متوافق تماماً مع models.py"""
     player = get_object_or_404(Player, id=player_id)
     
-    # جلب التجميع بأمان
+    # 1. جلب الإحصائيات المجمعة من الـ Properties والأدوات المعرفة داخل الموديل بأمان
     try:
-        stats = player.gameweek_stats.aggregate(
-            total_points=Sum('points'),
-            total_goals=Sum('goals'),
-            total_assists=Sum('assists'),
-            clean_sheets=Count('id', filter=Q(clean_sheet=True)),
-            matches_played=Count('id', filter=Q(played=True))
-        )
+        total_pts = player.total_points()
+        total_g = player.total_goals()
+        total_a = player.total_assists()
+        matches_count = player.gameweek_stats.filter(played=True).count()
+        clean_sheets_count = player.gameweek_stats.filter(clean_sheet=True).count()
     except Exception:
-        stats = {
-            'total_points': 0,
-            'total_goals': 0,
-            'total_assists': 0,
-            'clean_sheets': 0,
-            'matches_played': 0,
-        }
+        total_pts = 0
+        total_g = 0
+        total_a = 0
+        matches_count = 0
+        clean_sheets_count = 0
 
-    # جلب المباريات القادمة بأمان
+    stats = {
+        'total_points': total_pts,
+        'total_goals': total_g,
+        'total_assists': total_a,
+        'matches_played': matches_count,
+        'clean_sheets': clean_sheets_count,
+        'yellow_cards': player.total_yellow_cards,
+        'red_cards': player.total_red_cards,
+    }
+
+    # 2. جلب المباريات القادمة بأمان
+    next_matches = []
     try:
         next_matches = Match.objects.filter(
             Q(home_team=player.team) | Q(away_team=player.team),
             is_finished=False
-        ).order_by('match_date')[:3]
+        ).select_related('home_team', 'away_team', 'gameweek').order_by('match_date')[:3]
     except Exception:
         next_matches = []
 
-    # جلب نسبة الملكية بأمان
-    ownership = 0
-    if hasattr(player, 'ownership_percentage'):
-        try:
-            ownership = player.ownership_percentage()
-        except Exception:
-            ownership = 0
+    # 3. حساب نسبة الملكية بأمان
+    try:
+        ownership = player.ownership_percentage()
+    except Exception:
+        ownership = 0.0
 
     context = {
         'player': player,
@@ -1195,10 +1200,4 @@ def player_detail_modal(request, player_id):
         'ownership': ownership,
     }
     
-    # نحدد القالب المناسب حسب بنية المجلدات لديك
-    template_name = 'fantasy/partials/player_modal.html'
-    
-    if request.headers.get('HX-Request'):
-        return render(request, template_name, context)
-        
-    return render(request, template_name, context)
+    return render(request, 'fantasy/partials/player_modal.html', context)
