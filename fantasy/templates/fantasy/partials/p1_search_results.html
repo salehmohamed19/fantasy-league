@@ -1,0 +1,10 @@
+{% for player in p1_search_results %}
+<button type="button" 
+        onclick="selectPlayerForCompare(1, '{{ player.id }}')"
+        class="w-full text-right p-2 rounded-lg hover:bg-plGreen/20 transition flex items-center justify-between text-xs text-white border-b border-gray-800/40 last:border-none">
+    <span class="font-bold">{{ player.name }}</span>
+    <span class="text-[10px] text-gray-400">{{ player.team.name }} | <strong class="text-yellow-400">{{ player.price }}M</strong></span>
+</button>
+{% empty %}
+<p class="text-[11px] text-gray-400 text-center py-2">لا يوجد لاعب بهذا الاسم</p>
+{% endfor %}

@@ -1208,9 +1208,11 @@ from django.db.models import Q
 def compare_players(request):
     p1_id = request.GET.get('player1')
     p2_id = request.GET.get('player2')
+    q1 = request.GET.get('q1', '').strip()
+    q2 = request.GET.get('q2', '').strip()
 
-    player1 = Player.objects.filter(id=p1_id).first() if p1_id else None
-    player2 = Player.objects.filter(id=p2_id).first() if p2_id else None
+    player1 = Player.objects.filter(id=p1_id).first() if p1_id and p1_id.isdigit() else None
+    player2 = Player.objects.filter(id=p2_id).first() if p2_id and p2_id.isdigit() else None
 
     def get_player_data(player):
         if not player:
@@ -1218,7 +1220,6 @@ def compare_players(request):
         
         stats = player.gameweek_stats.filter(gameweek__is_published=True)
         
-        # المباريات القادمة
         next_matches = Match.objects.filter(
             Q(home_team=player.team) | Q(away_team=player.team),
             is_finished=False
@@ -1237,17 +1238,30 @@ def compare_players(request):
             'next_matches': next_matches,
         }
 
-    # جلب قائمة جميع اللاعبين للاختيار منها
     active_league_id = request.session.get('active_league_id')
-    all_players = Player.objects.filter(team__league_id=active_league_id).select_related('team') if active_league_id else Player.objects.select_related('team')
+    base_players = Player.objects.filter(team__league_id=active_league_id).select_related('team') if active_league_id else Player.objects.select_related('team')
+
+    # فلترة المتاحين للبحث الخاص بـ اللاعب الأول والثاني
+    p1_search_results = base_players.filter(name__icontains=q1) if q1 else base_players
+    p2_search_results = base_players.filter(name__icontains=q2) if q2 else base_players
 
     context = {
         'p1': get_player_data(player1),
         'p2': get_player_data(player2),
-        'all_players': all_players,
-        'selected_p1_id': int(p1_id) if p1_id and p1_id.isdigit() else None,
-        'selected_p2_id': int(p2_id) if p2_id and p2_id.isdigit() else None,
+        'p1_search_results': p1_search_results[:15],
+        'p2_search_results': p2_search_results[:15],
+        'q1': q1,
+        'q2': q2,
+        'selected_p1_id': player1.id if player1 else None,
+        'selected_p2_id': player2.id if player2 else None,
     }
+
+    # إذا كان الطلب من HTMX وموجه لتحديث قائمة البحث الأولى أو الثانية
+    target_header = request.headers.get('HX-Target')
+    if target_header == 'p1-results':
+        return render(request, 'fantasy/partials/p1_search_results.html', context)
+    elif target_header == 'p2-results':
+        return render(request, 'fantasy/partials/p2_search_results.html', context)
 
     if request.headers.get('HX-Request'):
         return render(request, 'fantasy/partials/comparison_results.html', context)
