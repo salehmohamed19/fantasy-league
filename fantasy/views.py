@@ -1271,7 +1271,7 @@ def compare_players(request):
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Sum, Max
 from django.utils import timezone
-from .models import Gameweek, PlayerStatusUpdate, Player, LeaguePrize, UserTeam, GameweekScore
+from .models import Gameweek, PlayerStatusUpdate, Player, LeaguePrize, UserFantasyTeam, UserSquad
 
 def news_and_awards(request):
     now = timezone.now()
@@ -1289,7 +1289,7 @@ def news_and_awards(request):
     manager_of_the_week = None
     
     if last_finished_gw:
-        top_score = GameweekScore.objects.filter(gameweek=last_finished_gw).order_by('-points').first()
+        top_score = UserSquad.objects.filter(gameweek=last_finished_gw).order_by('-points').first()
         if top_score:
             manager_of_the_week = {
                 'user_team': top_score.user_team,
