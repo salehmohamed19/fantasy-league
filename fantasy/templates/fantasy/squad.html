@@ -188,7 +188,6 @@
 
         <!-- الهيدر العلوي المُعدل -->
         <div class="w-full bg-[#240028] p-3 sm:p-4 rounded-t-xl grid grid-cols-3 items-center border-b-2 border-plGreen shadow-md gap-1">
-            
             <div class="text-right">
                 <h2 class="text-sm sm:text-lg font-black text-white tracking-wide truncate">{{ user_team.name }}</h2>
                 <p class="text-[10px] sm:text-xs text-gray-300 mt-0.5">الميزانية: <span class="text-plGreen font-bold text-xs sm:text-sm">{{ user_team.budget }}M</span></p>
@@ -217,7 +216,6 @@
                 </form>
                 {% endif %}
             </div>
-
         </div>
 
         <div id="saving-indicator" class="hidden w-full bg-blue-900/90 border border-blue-500 text-blue-100 p-2.5 rounded-lg my-2 text-center font-bold text-xs shadow">
@@ -232,7 +230,6 @@
 
         <!-- الملعب الأخضر -->
         <div class="w-full bg-gradient-to-b from-emerald-800 via-green-700 to-emerald-800 rounded-b-xl p-2 sm:p-6 border-2 border-emerald-600 shadow-2xl relative min-h-[520px] sm:min-h-[580px] flex flex-col justify-between items-center overflow-hidden">
-            
             <div class="absolute inset-0 border-2 border-white/20 m-2 rounded-lg pointer-events-none"></div>
             <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-white/20 pointer-events-none"></div>
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white/20 rounded-full pointer-events-none"></div>
@@ -244,7 +241,6 @@
             <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-24 h-8 border-t-2 border-x-2 border-white/20 rounded-t-sm pointer-events-none"></div>
 
             <div class="w-full z-10 h-full flex flex-col justify-between items-center py-2 gap-3 sm:gap-4 my-auto">
-                
                 {% if starters %}
                     <!-- 1️⃣ خط الهجوم (FWD) -->
                     <div class="w-full flex justify-center items-center gap-1 sm:gap-8 flex-wrap">
@@ -485,18 +481,16 @@
                     </p>
                 </div>
                 {% endif %}
-
             </div>
         </div>
 
-        <!-- لوحة اختيار الكابتن والكابتن البديل أسفل الملعب -->
+        <!-- لوحة اختيار الكابتن والكابتن البديل -->
         {% if starters %}
         <div class="w-full bg-[#240028] mt-4 p-3.5 rounded-xl border border-yellow-500/30 shadow-lg">
             <h3 class="text-xs font-black text-yellow-400 mb-3 text-center uppercase tracking-wider border-b border-yellow-500/20 pb-2">
                 👑 تحديد قائد الفريق والبديل
             </h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <!-- اختيار الكابتن -->
                 <div>
                     <label class="block text-[11px] font-bold text-yellow-300 mb-1">
                         🟡 الكابتن الرئيسي (x2):
@@ -513,7 +507,6 @@
                     </select>
                 </div>
 
-                <!-- اختيار الكابتن البديل -->
                 <div>
                     <label class="block text-[11px] font-bold text-sky-300 mb-1">
                         🔵 الكابتن البديل (Vice):
@@ -544,7 +537,6 @@
             <div class="grid grid-cols-2 gap-3 sm:gap-4 min-h-[100px]">
                 {% for player in subs %}
                 <div class="flex flex-col items-center relative bg-gray-900/90 p-2.5 rounded-lg border border-purple-900/40 shadow-inner justify-between">
-                    
                     {% if player.is_suspended or player.suspended_matches_left > 0 %}
                         <span class="pitch-status-badge bg-red-600 text-white" title="موقوف">🚫 {{ player.suspended_matches_left }}</span>
                     {% elif player.has_red_card or player.red_card > 0 %}
@@ -620,11 +612,70 @@
                         {% endif %}
                     </div>
                     {% endif %}
-
                 </div>
                 {% empty %}
                 <div class="col-span-2 text-xs text-gray-400 text-center py-5 bg-gray-900/40 rounded-lg border border-dashed border-gray-700/60">
                     الاحتياطي فارغ (يتسع لـ 2 لاعبين).
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 📊 إحصائيات الموسم (GRID CARDS) -->
+        <div class="w-full bg-[#240028] mt-4 p-4 rounded-xl border border-purple-900/40 shadow-lg">
+            <h3 class="text-xs font-black text-gray-200 mb-3 text-right uppercase tracking-wider border-b border-purple-900/30 pb-2">
+                📊 إحصائيات الموسم
+            </h3>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-purple-950/60 border border-purple-800/40 p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-sm">
+                    <span class="text-[10px] text-purple-300 font-bold mb-1">إجمالي النقاط</span>
+                    <span class="text-lg font-black text-plGreen">{{ season_stats.total_points|default:"0" }}</span>
+                </div>
+
+                <div class="bg-purple-950/60 border border-purple-800/40 p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-sm">
+                    <span class="text-[10px] text-purple-300 font-bold mb-1">الترتيب العام</span>
+                    <span class="text-lg font-black text-yellow-400">#{{ season_stats.rank|default:"-" }}</span>
+                </div>
+
+                <div class="bg-purple-950/60 border border-purple-800/40 p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-sm">
+                    <span class="text-[10px] text-purple-300 font-bold mb-1">أعلى جولة</span>
+                    <span class="text-lg font-black text-sky-400">{{ season_stats.highest_gw_pts|default:"0" }}</span>
+                </div>
+
+                <div class="bg-purple-950/60 border border-purple-800/40 p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-sm">
+                    <span class="text-[10px] text-purple-300 font-bold mb-1">إجمالي التغييرات</span>
+                    <span class="text-lg font-black text-pink-400">{{ season_stats.total_transfers|default:"0" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ⚽ المباريات القادمة (GRID CARDS) -->
+        <div class="w-full bg-[#240028] mt-4 p-4 rounded-xl border border-purple-900/40 shadow-lg">
+            <h3 class="text-xs font-black text-gray-200 mb-3 text-right uppercase tracking-wider border-b border-purple-900/30 pb-2">
+                ⚽ المباريات القادمة
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {% for fixture in upcoming_fixtures %}
+                <div class="bg-purple-950/50 border-r-4 border-plGreen rounded-xl p-3 flex justify-between items-center text-white border border-purple-900/30 shadow-md">
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center gap-2 font-bold text-xs sm:text-sm">
+                            <span>{{ fixture.home_team.name }}</span>
+                            <span class="text-gray-400 text-[10px]">ضد</span>
+                            <span>{{ fixture.away_team.name }}</span>
+                        </div>
+                        <span class="text-[10px] text-purple-300 font-medium">
+                            🗓️ {{ fixture.kickoff_time|date:"d M Y - h:i A"|default:fixture.kickoff_time }}
+                        </span>
+                    </div>
+                    <span class="bg-purple-900/80 text-purple-200 text-[10px] font-bold px-2.5 py-1 rounded-full border border-purple-700/50 whitespace-nowrap">
+                        الجولة {{ fixture.gameweek.number }}
+                    </span>
+                </div>
+                {% empty %}
+                <div class="col-span-full text-center py-4 bg-purple-950/30 rounded-lg text-xs text-purple-300 border border-dashed border-purple-800/40">
+                    لا توجد مباريات قادمة مبرمجة حالياً.
                 </div>
                 {% endfor %}
             </div>
