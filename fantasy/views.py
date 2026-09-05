@@ -9,13 +9,22 @@ from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
-from django.db.models import Sum, Prefetch, Q, Count
+from django.db.models import Sum, Prefetch, Q, Count, Max
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 
 from .models import (
     League, RealTeam, Player, Gameweek, Match,
     PlayerGameweekStat, UserFantasyTeam, UserSquad, UserProfile
 )
+# جلب الموديلات بأمان في حال وجود PlayerStatusUpdate أو LeaguePrize أو Award
+try:
+    from .models import PlayerStatusUpdate, LeaguePrize, Award
+except ImportError:
+    PlayerStatusUpdate = None
+    LeaguePrize = None
+    Award = None
+
 from .forms import UserUpdateForm, ProfileUpdateForm, TeamNameUpdateForm
 
 
@@ -1146,14 +1155,13 @@ def view_closed_squad(request, gw_id):
 
 
 # ==========================================
-# 7. المودال والنوافذ المنبثقة للبيانات
+# 7. المودال والمقارنة والأخبار والجوائز
 # ==========================================
 
 def player_detail_modal(request, player_id):
     """عرض تفاصيل وإحصائيات اللاعب داخل نافذة منبثقة متوافق تماماً مع models.py"""
     player = get_object_or_404(Player, id=player_id)
     
-    # 1. جلب الإحصائيات المجمعة من الـ Properties والأدوات المعرفة داخل الموديل بأمان
     try:
         total_pts = player.total_points()
         total_g = player.total_goals()
@@ -1173,11 +1181,10 @@ def player_detail_modal(request, player_id):
         'total_assists': total_a,
         'matches_played': matches_count,
         'clean_sheets': clean_sheets_count,
-        'yellow_cards': player.total_yellow_cards,
-        'red_cards': player.total_red_cards,
+        'yellow_cards': getattr(player, 'total_yellow_cards', 0),
+        'red_cards': getattr(player, 'total_red_cards', 0),
     }
 
-    # 2. جلب المباريات القادمة بأمان
     next_matches = []
     try:
         next_matches = Match.objects.filter(
@@ -1187,7 +1194,6 @@ def player_detail_modal(request, player_id):
     except Exception:
         next_matches = []
 
-    # 3. حساب نسبة الملكية بأمان
     try:
         ownership = player.ownership_percentage()
     except Exception:
@@ -1202,7 +1208,6 @@ def player_detail_modal(request, player_id):
     
     return render(request, 'fantasy/partials/player_modal.html', context)
 
-from django.db.models import Q
 
 @login_required
 def compare_players(request):
@@ -1241,7 +1246,6 @@ def compare_players(request):
     active_league_id = request.session.get('active_league_id')
     base_players = Player.objects.filter(team__league_id=active_league_id).select_related('team') if active_league_id else Player.objects.select_related('team')
 
-    # فلترة المتاحين للبحث الخاص بـ اللاعب الأول والثاني
     p1_search_results = base_players.filter(name__icontains=q1) if q1 else base_players
     p2_search_results = base_players.filter(name__icontains=q2) if q2 else base_players
 
@@ -1256,7 +1260,6 @@ def compare_players(request):
         'selected_p2_id': player2.id if player2 else None,
     }
 
-    # إذا كان الطلب من HTMX وموجه لتحديث قائمة البحث الأولى أو الثانية
     target_header = request.headers.get('HX-Target')
     if target_header == 'p1-results':
         return render(request, 'fantasy/partials/p1_search_results.html', context)
@@ -1268,36 +1271,53 @@ def compare_players(request):
 
     return render(request, 'fantasy/compare.html', context)
 
-from django.shortcuts import render, get_object_or_404
-from django.db.models import Sum, Max
-from django.utils import timezone
-from .models import Gameweek, PlayerStatusUpdate, Player, LeaguePrize, UserFantasyTeam, UserSquad
 
 def news_and_awards(request):
+    """عرض الأخبار والغيابات والجوائز وأبطال كافة الجولات تلقائياً مع دعم الجوائز اليدوية"""
     now = timezone.now()
     
-    # 1. الجولة القادمة للعداد التنازلي
-    next_gameweek = Gameweek.objects.filter(deadline__gt=now).order_by('deadline').first()
+    # 1. العداد التنازلي للجولة القادمة
+    next_gameweek = Gameweek.objects.filter(is_finished=False).order_by('number').first()
     
-    # 2. الأخبار والمصابين والموقوفين (استبعاد المجهزين 100%)
-    injuries_and_news = PlayerStatusUpdate.objects.filter(
-        is_active=True
-    ).exclude(chance_of_playing=100).select_related('player', 'player__team').order_by('chance_of_playing', '-updated_at')
+    # 2. المصابون والموقوفون والغيابات (من الموديل الرئيسي وحالات التحديث إن وجدت)
+    injured_players = Player.objects.filter(is_injured=True).select_related('team')
+    suspended_players = Player.objects.filter(is_suspended=True).select_related('team')
+    
+    injuries_and_news = None
+    if PlayerStatusUpdate:
+        injuries_and_news = PlayerStatusUpdate.objects.filter(
+            is_active=True
+        ).exclude(chance_of_playing=100).select_related('player', 'player__team').order_by('chance_of_playing', '-updated_at')
 
-    # 3. بطل الجولة الأخيرة المكتملة
-    last_finished_gw = Gameweek.objects.filter(is_finished=True).order_by('-number').first()
+    # 3. بطل كل جولة مكتملة (تلقائيًا بناءً على أعلى النقاط)
+    completed_gameweeks = Gameweek.objects.filter(is_finished=True, is_published=True).order_by('-number')
+    weekly_heroes = []
+
+    for gw in completed_gameweeks:
+        top_squads = UserSquad.objects.filter(gameweek=gw).order_by('-points_earned')
+        if top_squads.exists():
+            max_pts = top_squads.first().points_earned
+            best_performers = top_squads.filter(points_earned=max_pts).select_related('user_team__user')
+            weekly_heroes.append({
+                'gameweek': gw,
+                'top_score': max_pts,
+                'performers': best_performers,
+            })
+
+    # 4. أسطورة الجولة الأخيرة المكتملة
+    last_finished_gw = completed_gameweeks.first()
     manager_of_the_week = None
-    
-    if last_finished_gw:
-        top_score = UserSquad.objects.filter(gameweek=last_finished_gw).order_by('-points').first()
-        if top_score:
+    if last_finished_gw and weekly_heroes:
+        first_hero = weekly_heroes[0]
+        first_performer = first_hero['performers'].first()
+        if first_performer:
             manager_of_the_week = {
-                'user_team': top_score.user_team,
-                'points': top_score.points,
+                'user_team': first_performer.user_team,
+                'points': first_hero['top_score'],
                 'gameweek': last_finished_gw
             }
 
-    # 4. أفضل اللاعبين أداءً في الجولة الأخيرة بكل مركز
+    # 5. أفضل اللاعبين بكل مركز في الجولة الأخيرة
     top_performers = {}
     if last_finished_gw:
         positions = ['GK', 'DEF', 'MID', 'FWD']
@@ -1312,14 +1332,19 @@ def news_and_awards(request):
             if top_player:
                 top_performers[pos] = top_player
 
-    # 5. قائمة الجوائز
-    prizes = LeaguePrize.objects.all()
+    # 6. الجوائز اليدوية / المخصصة من الأدمن
+    manual_awards = Award.objects.all().select_related('winner').order_by('-date_awarded') if Award else []
+    prizes = LeaguePrize.objects.all() if LeaguePrize else []
 
     context = {
         'next_gameweek': next_gameweek,
+        'injured_players': injured_players,
+        'suspended_players': suspended_players,
         'injuries_and_news': injuries_and_news,
+        'weekly_heroes': weekly_heroes,
         'manager_of_the_week': manager_of_the_week,
         'top_performers': top_performers,
+        'manual_awards': manual_awards,
         'prizes': prizes,
     }
     return render(request, 'fantasy/news_and_awards.html', context)

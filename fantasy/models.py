@@ -394,7 +394,7 @@ class PlayerStatusUpdate(models.Model):
         return f"{self.player.name} - {self.get_chance_of_playing_display()}"
 
 
-# 11. لوحة جوائز الدوري (مضاف جديد)
+# 11. لوحة جوائز الدوري العامة
 class LeaguePrize(models.Model):
     PRIZE_TYPE_CHOICES = [
         ('season', 'بطل الموسم'),
@@ -416,7 +416,24 @@ class LeaguePrize(models.Model):
         return self.title
 
 
-# 12. بروفايل المستخدم
+# 12. الجوائز والتكريمات الفردية للمستخدمين
+class Award(models.Model):
+    title = models.CharField(max_length=200, verbose_name="اسم الجائزة")
+    winner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='awards', verbose_name="الفائز")
+    description = models.TextField(blank=True, null=True, verbose_name="وصف الجائزة / المناسبة")
+    icon = models.CharField(max_length=50, default="🏆", verbose_name="الإيموجي/الأيقونة")
+    date_awarded = models.DateField(auto_now_add=True, verbose_name="تاريخ التتويج")
+
+    class Meta:
+        ordering = ['-date_awarded']
+        verbose_name = "جائزة / وسام مستخدم"
+        verbose_name_plural = "جوائز وأوسمة المستخدمين"
+
+    def __str__(self):
+        return f"{self.title} - {self.winner.username}"
+
+
+# 13. بروفايل المستخدم
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', verbose_name="المستخدم")
     avatar = CloudinaryField('الصورة الشخصية', folder='avatars/', null=True, blank=True)

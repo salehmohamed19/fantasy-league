@@ -232,3 +232,11 @@ class UserSquadAdmin(admin.ModelAdmin):
     search_fields = ('user_team__name',)
     raw_id_fields = ('user_team', 'captain', 'vice_captain')
     filter_horizontal = ('starting_players', 'substitutes')
+
+from django.contrib import admin
+from .models import Award
+
+@admin.register(Award)
+class AwardAdmin(admin.ModelAdmin):
+    list_display = ('title', 'winner', 'date_awarded')
+    search_fields = ('title', 'winner__username')    

@@ -11,14 +11,16 @@
         <h1 class="text-2xl sm:text-3xl font-black text-white tracking-wide">
             📰 مركز الأخبار والجوائز
         </h1>
-        <p class="text-xs sm:text-sm text-gray-400 mt-1">تابع حالة اللاعبين، أبطال الجولة، وتفاصيل المنافسة</p>
+        <p class="text-xs sm:text-sm text-gray-400 mt-1">تابع حالة اللاعبين، أبطال الجولات، وتفاصيل المنافسة</p>
     </div>
 
     <!-- الشبكة الرئيسية -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <!-- القسم الأول: الأخبار والمصابين والموقوفين (يشغل عامودين) -->
+        <!-- القسم الأول: الأخبار والمصابين والموقوفين والجوائز اليدوية (عامودين) -->
         <div class="lg:col-span-2 space-y-4">
+            
+            <!-- قائمة الغيابات والإصابات والإيقافات -->
             <div class="bg-[#240028] border border-gray-800 rounded-2xl p-4 sm:p-5 shadow-xl">
                 <h2 class="text-lg font-bold text-plGreen mb-4 flex items-center gap-2">
                     <span>🚑</span>
@@ -26,10 +28,10 @@
                 </h2>
 
                 <div class="space-y-3">
+                    <!-- غيابات تحديث الحالات المباشرة -->
                     {% for item in injuries_and_news %}
                     <div class="bg-plDark/80 border border-gray-800 rounded-xl p-3 flex items-center justify-between gap-3">
                         <div class="flex items-center gap-3">
-                            <!-- شارة الاحتمالية -->
                             {% if item.chance_of_playing == 0 %}
                                 <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">0% مستبعد</span>
                             {% elif item.chance_of_playing <= 50 %}
@@ -46,19 +48,75 @@
 
                         <span class="text-[10px] text-gray-500 dir-ltr">{{ item.updated_at|date:"d/m H:i" }}</span>
                     </div>
-                    {% empty %}
+                    {% endfor %}
+
+                    <!-- المصابون المباشرون من موديل اللاعب -->
+                    {% for player in injured_players %}
+                    <div class="bg-plDark/80 border border-red-900/30 rounded-xl p-3 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">🚑 مصاب</span>
+                            <div>
+                                <h3 class="font-bold text-sm text-white">{{ player.name }} <span class="text-xs text-gray-400">({{ player.team.name }})</span></h3>
+                                <p class="text-xs text-red-300 mt-0.5">مستبعد بسبب الإصابة</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <!-- الموقوفون المباشرون من موديل اللاعب -->
+                    {% for player in suspended_players %}
+                    <div class="bg-plDark/80 border border-yellow-900/30 rounded-xl p-3 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">🟨 موقوف</span>
+                            <div>
+                                <h3 class="font-bold text-sm text-white">{{ player.name }} <span class="text-xs text-gray-400">({{ player.team.name }})</span></h3>
+                                <p class="text-xs text-yellow-300 mt-0.5">موقوف بداعي الكروت أو القرار الإداري</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    {% if not injuries_and_news and not injured_players and not suspended_players %}
                     <div class="text-center py-8 text-gray-400 text-xs">
                         لا توجد إصابات أو إيقافات مسجلة حالياً 🎉
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- الجوائز المخصصة / اليدوية من الأدمن -->
+            {% if manual_awards %}
+            <div class="bg-[#240028] border border-gray-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                <h2 class="text-lg font-bold text-yellow-400 mb-4 flex items-center gap-2">
+                    <span>🎖️</span>
+                    <span>الجوائز والأوسمة الممنوحة</span>
+                </h2>
+
+                <div class="space-y-3">
+                    {% for award in manual_awards %}
+                    <div class="bg-plDark border border-yellow-500/20 rounded-xl p-3 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">🏅</span>
+                            <div>
+                                <h3 class="font-bold text-sm text-white">{{ award.title }}</h3>
+                                <p class="text-xs text-gray-300">الفائز: <span class="text-yellow-400 font-bold">{{ award.winner.username }}</span></p>
+                                {% if award.description %}
+                                <p class="text-[11px] text-gray-400 mt-0.5">{{ award.description }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <span class="text-[10px] text-gray-500 dir-ltr">{{ award.date_awarded|date:"d/m/Y" }}</span>
                     </div>
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
 
-            <!-- لوحة الجوائز -->
+            <!-- لوحة جوائز الدوري العامة -->
             <div class="bg-[#240028] border border-gray-800 rounded-2xl p-4 sm:p-5 shadow-xl">
                 <h2 class="text-lg font-bold text-yellow-400 mb-4 flex items-center gap-2">
                     <span>🏆</span>
-                    <span>لوحة جوائز الدوري</span>
+                    <span>لوحة جوائز البطولة</span>
                 </h2>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -77,37 +135,44 @@
             </div>
         </div>
 
-        <!-- القسم الثاني: بطل الجولة وأفضل اللاعبين (يشغل عامود واحد) -->
+        <!-- القسم الثاني: أبطال كافة الجولات وأفضل اللاعبين (عامود واحد) -->
         <div class="space-y-4">
             
-            <!-- بطل الجولة -->
+            <!-- أبطال الجولات التلقائيون -->
             <div class="bg-gradient-to-br from-yellow-950/40 via-[#240028] to-[#240028] border border-yellow-500/30 rounded-2xl p-4 shadow-xl">
                 <h2 class="text-base font-bold text-yellow-400 mb-3 flex items-center gap-2">
                     <span>👑</span>
-                    <span>بطل الجولة الأخيرة</span>
+                    <span>أبطال الجولات</span>
                 </h2>
 
-                {% if manager_of_the_week %}
-                <div class="text-center bg-plDark/90 rounded-xl p-4 border border-yellow-500/20">
-                    <p class="text-xs text-gray-400">{{ manager_of_the_week.gameweek.name }}</p>
-                    <h3 class="text-lg font-black text-white mt-1">{{ manager_of_the_week.user_team.name }}</h3>
-                    <p class="text-xs text-gray-300">المدرب: {{ manager_of_the_week.user_team.user.username }}</p>
-                    
-                    <div class="mt-3 inline-block bg-yellow-500/20 border border-yellow-500/40 px-4 py-1.5 rounded-full">
-                        <span class="text-lg font-black text-yellow-400">{{ manager_of_the_week.points }}</span>
-                        <span class="text-xs text-yellow-200">نقطة</span>
+                <div class="space-y-3">
+                    {% for hero in weekly_heroes %}
+                    <div class="bg-plDark/90 rounded-xl p-3 border border-yellow-500/20 text-center">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                            الجولة {{ hero.gameweek.number }}
+                        </span>
+                        
+                        {% for performer in hero.performers %}
+                        <h3 class="text-sm font-black text-white mt-1.5">{{ performer.user_team.name }}</h3>
+                        <p class="text-[11px] text-gray-300">المدرب: {{ performer.user_team.user.username }}</p>
+                        {% endfor %}
+                        
+                        <div class="mt-2 inline-block bg-yellow-500/20 border border-yellow-500/40 px-3 py-0.5 rounded-full">
+                            <span class="text-xs font-black text-yellow-400">{{ hero.top_score }}</span>
+                            <span class="text-[10px] text-yellow-200">نقطة</span>
+                        </div>
                     </div>
+                    {% empty %}
+                    <p class="text-xs text-gray-400 text-center py-4">لم تُغلق أو تُنشر أي جولات بعد.</p>
+                    {% endfor %}
                 </div>
-                {% else %}
-                <p class="text-xs text-gray-400 text-center py-4">لم تبدأ الجوالات بعد.</p>
-                {% endif %}
             </div>
 
-            <!-- أفضل اللاعبين أداءً -->
+            <!-- أعلى اللاعبين نقاطاً حسب المركز في الجولة الأخيرة -->
             <div class="bg-[#240028] border border-gray-800 rounded-2xl p-4 shadow-xl">
                 <h2 class="text-base font-bold text-plGreen mb-3 flex items-center gap-2">
                     <span>⭐</span>
-                    <span>الأعلى نقاطاً (حسب المركز)</span>
+                    <span>الأعلى نقاطاً (الجولة الأخيرة)</span>
                 </h2>
 
                 <div class="space-y-2.5">
