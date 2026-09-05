@@ -29,8 +29,10 @@
 </div>
 
 <script>
-(function() {
+document.addEventListener("DOMContentLoaded", function() {
     const targetDateStr = "{{ timer_target|date:'c' }}"; 
+    if (!targetDateStr) return;
+
     const targetDate = new Date(targetDateStr).getTime();
 
     const timer = setInterval(function() {
@@ -56,7 +58,7 @@
             document.getElementById("sq-cd-seconds").innerText = s;
         }
     }, 1000);
-})();
+});
 </script>
 
 {% else %}
