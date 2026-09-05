@@ -10,43 +10,53 @@
             <span>⚖️</span>
             <span>مقارنة اللاعبين (Head-to-Head)</span>
         </h2>
-        <p class="text-xs sm:text-sm text-gray-400 mt-1">قارن بين أداء وأرقام لاعبين لتحديد خيارك القادم بدقة[cite: 5]</p>
+        <p class="text-xs sm:text-sm text-gray-400 mt-1">ابحث باسم اللاعب وقارن الأرقام فوراً</p>
     </div>
 
     <!-- بطاقة اختيار اللاعبين والبحث -->
     <div class="bg-[#240028] border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-2xl mb-6">
-        <form hx-get="{% url 'compare_players' %}" hx-target="#comparison-results" hx-swap="innerHTML" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form hx-get="{% url 'compare_players' %}" 
+              hx-target="#comparison-results" 
+              hx-swap="innerHTML" 
+              hx-trigger="change"
+              class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
-            <!-- اختيار اللاعب الأول -->
+            <!-- بحث اللاعب الأول -->
             <div>
                 <label class="block text-xs font-bold text-gray-300 mb-1.5 flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-plGreen"></span> اللاعب الأول[cite: 5]
+                    <span class="w-2 h-2 rounded-full bg-plGreen"></span> اللاعب الأول
                 </label>
-                <select name="player1" onchange="this.form.requestSubmit()" 
-                        class="w-full bg-plDark text-white border border-gray-700 focus:border-plGreen text-xs sm:text-sm rounded-xl p-2.5 outline-none cursor-pointer transition shadow-inner">
-                    <option value="">-- اختر أو ابحث عن اللاعب الأول --[cite: 5]</option>
+                <input type="text" 
+                       name="player1_search" 
+                       list="players-list-1" 
+                       placeholder="🔍 اكتب اسم اللاعب الأول..." 
+                       class="w-full bg-plDark text-white border border-gray-700 focus:border-plGreen text-xs sm:text-sm rounded-xl p-2.5 outline-none transition shadow-inner"
+                       autocomplete="off">
+                
+                <datalist id="players-list-1">
                     {% for player in all_players %}
-                        <option value="{{ player.id }}" {% if player.id == selected_p1_id %}selected{% endif %}>
-                            {{ player.name }} | {{ player.team.name }} ({{ player.price }}M)[cite: 5]
-                        </option>
+                        <option value="{{ player.name }} ({{ player.team.name }}) - {{ player.price }}M">
                     {% endfor %}
-                </select>
+                </datalist>
             </div>
 
-            <!-- اختيار اللاعب الثاني -->
+            <!-- بحث اللاعب الثاني -->
             <div>
                 <label class="block text-xs font-bold text-gray-300 mb-1.5 flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-plPink"></span> اللاعب الثاني[cite: 5]
+                    <span class="w-2 h-2 rounded-full bg-plPink"></span> اللاعب الثاني
                 </label>
-                <select name="player2" onchange="this.form.requestSubmit()" 
-                        class="w-full bg-plDark text-white border border-gray-700 focus:border-plPink text-xs sm:text-sm rounded-xl p-2.5 outline-none cursor-pointer transition shadow-inner">
-                    <option value="">-- اختر أو ابحث عن اللاعب الثاني --[cite: 5]</option>
+                <input type="text" 
+                       name="player2_search" 
+                       list="players-list-2" 
+                       placeholder="🔍 اكتب اسم اللاعب الثاني..." 
+                       class="w-full bg-plDark text-white border border-gray-700 focus:border-plPink text-xs sm:text-sm rounded-xl p-2.5 outline-none transition shadow-inner"
+                       autocomplete="off">
+
+                <datalist id="players-list-2">
                     {% for player in all_players %}
-                        <option value="{{ player.id }}" {% if player.id == selected_p2_id %}selected{% endif %}>
-                            {{ player.name }} | {{ player.team.name }} ({{ player.price }}M)[cite: 5]
-                        </option>
+                        <option value="{{ player.name }} ({{ player.team.name }}) - {{ player.price }}M">
                     {% endfor %}
-                </select>
+                </datalist>
             </div>
         </form>
 
