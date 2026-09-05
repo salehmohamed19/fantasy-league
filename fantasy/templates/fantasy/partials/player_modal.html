@@ -11,11 +11,13 @@
             <span class="text-lg leading-none">&times;</span>
         </button>
 
-        <!-- الهيدر: صورة اللاعب، الاسم، الفريق، والمركز -->
+        <!-- الهيدر: صورة اللاعب أو شعار الفريق، الاسم، الفريق، والمركز -->
         <div class="flex items-center space-x-4 space-x-reverse mb-6">
-            <div class="w-16 h-16 rounded-full bg-gray-800 border-2 border-emerald-500 overflow-hidden flex-shrink-0 flex items-center justify-center">
+            <div class="w-16 h-16 rounded-full bg-gray-800 border-2 border-emerald-500 overflow-hidden flex-shrink-0 flex items-center justify-center p-1">
                 {% if player.photo %}
-                    <img src="{{ player.photo.url }}" alt="{{ player.name }}" class="w-full h-full object-cover">
+                    <img src="{{ player.photo.url }}" alt="{{ player.name }}" class="w-full h-full object-cover rounded-full">
+                {% elif player.team.logo %}
+                    <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain">
                 {% else %}
                     <span class="text-2xl text-emerald-400 font-bold">{{ player.name|first }}</span>
                 {% endif %}
