@@ -1,36 +1,70 @@
-<div class="max-w-4xl mx-auto p-4 text-white font-sans rtl">
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-2 sm:px-4 py-4 rtl">
     
-    <h2 class="text-2xl font-bold text-center mb-6 text-emerald-400">📊 مقارنة اللاعبين (Head-to-Head)</h2>
+    <!-- العنوان الرئيسي -->
+    <div class="text-center mb-6">
+        <h2 class="text-xl sm:text-2xl font-black text-plGreen tracking-wide flex items-center justify-center gap-2">
+            <span>⚖️</span>
+            <span>مقارنة اللاعبين (Head-to-Head)</span>
+        </h2>
+        <p class="text-xs sm:text-sm text-gray-400 mt-1">قارن بين أداء وأرقام لاعبين لتحديد خيارك القادم بدقة</p>
+    </div>
 
-    <!-- نموذج اختيار اللاعبين -->
-    <form hx-get="{% url 'compare_players' %}" hx-target="#comparison-results" hx-swap="innerHTML" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 bg-gray-900 p-4 rounded-xl border border-gray-800">
-        <div>
-            <label class="block text-xs text-gray-400 mb-2">اللاعب الأول</label>
-            <select name="player1" onchange="this.form.requestSubmit()" class="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-2.5 text-sm focus:border-emerald-500">
-                <option value="">-- اختر اللاعب الأول --</option>
-                {% for player in all_players %}
-                    <option value="{{ player.id }}" {% if player.id == selected_p1_id %}selected{% endif %}>
-                        {{ player.name }} ({{ player.team.name }}) - {{ player.price }}M
-                    </option>
-                {% endfor %}
-            </select>
+    <!-- بطاقة اختيار اللاعبين -->
+    <div class="bg-[#240028] border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-2xl mb-6 relative">
+        <form id="compare-form" hx-get="{% url 'compare_players' %}" hx-target="#comparison-results" hx-swap="innerHTML" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            <!-- اختيار اللاعب الأول -->
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1.5 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-plGreen"><span> المدير الأول
+                </label>
+                <select name="player1" onchange="this.form.requestSubmit()" 
+                        class="w-full bg-plDark text-white border border-gray-700 focus:border-plGreen text-xs sm:text-sm rounded-xl p-2.5 outline-none cursor-pointer transition shadow-inner">
+                    <option value="">-- اختر اللاعب الأول --</option>
+                    {% for player in all_players %}
+                        <option value="{{ player.id }}" {% if player.id == selected_p1_id %}selected{% endif %}>
+                            {{ player.name }} ({{ player.team.name }}) - {{ player.price }}M
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- اختيار اللاعب الثاني -->
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1.5 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-plPink"></span> اللاعب الثاني
+                </label>
+                <select name="player2" onchange="this.form.requestSubmit()" 
+                        class="w-full bg-plDark text-white border border-gray-700 focus:border-plPink text-xs sm:text-sm rounded-xl p-2.5 outline-none cursor-pointer transition shadow-inner">
+                    <option value="">-- اختر اللاعب الثاني --</option>
+                    {% for player in all_players %}
+                        <option value="{{ player.id }}" {% if player.id == selected_p2_id %}selected{% endif %}>
+                            {{ player.name }} ({{ player.team.name }}) - {{ player.price }}M
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+
+        <!-- زر مسح الاختيارات أو إعادة الضبط السريع -->
+        {% if selected_p1_id or selected_p2_id %}
+        <div class="flex justify-center mt-4 pt-3 border-t border-gray-800/60">
+            <a href="{% url 'compare_players' %}" class="text-xs font-bold text-gray-400 hover:text-plPink transition flex items-center gap-1 bg-plDark px-3 py-1.5 rounded-lg border border-gray-800">
+                <span>🔄</span>
+                <span>إعادة ضبط المقارنة</span>
+            </a>
         </div>
+        {% endif %}
+    </div>
 
-        <div>
-            <label class="block text-xs text-gray-400 mb-2">اللاعب الثاني</label>
-            <select name="player2" onchange="this.form.requestSubmit()" class="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-2.5 text-sm focus:border-emerald-500">
-                <option value="">-- اختر اللاعب الثاني --</option>
-                {% for player in all_players %}
-                    <option value="{{ player.id }}" {% if player.id == selected_p2_id %}selected{% endif %}>
-                        {{ player.name }} ({{ player.team.name }}) - {{ player.price }}M
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-    </form>
-
-    <!-- مكان عرض نتائج المقارنة -->
+    <!-- نتائج المقارنة -->
     <div id="comparison-results">
         {% include "fantasy/partials/comparison_results.html" %}
     </div>
+
 </div>
+{% endblock %}
