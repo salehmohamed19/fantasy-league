@@ -1,0 +1,44 @@
+{% if next_gameweek %}
+<div class="bg-gradient-to-r from-purple-900 via-plDark to-purple-950 border-b border-plGreen/30 py-2 px-4 text-white">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-right">
+        
+        <div class="flex items-center gap-2">
+            <span class="animate-pulse text-red-500 font-bold">🔴</span>
+            <span class="text-xs sm:text-sm font-bold">
+                موعد إغلاق تشكيلة <span class="text-plGreen">الجولة {{ next_gameweek.number }}</span>:
+            </span>
+        </div>
+
+        <!-- العداد التنازلي بـ JavaScript -->
+        <div id="countdown-timer" class="flex items-center gap-3 dir-ltr font-mono font-bold text-sm sm:text-base text-yellow-400">
+            <div><span id="cd-days">00</span><span class="text-[10px] text-gray-400 block -mt-1">يوم</span></div>:
+            <div><span id="cd-hours">00</span><span class="text-[10px] text-gray-400 block -mt-1">ساعة</span></div>:
+            <div><span id="cd-minutes">00</span><span class="text-[10px] text-gray-400 block -mt-1">دقيقة</span></div>:
+            <div><span id="cd-seconds">00</span><span class="text-[10px] text-gray-400 block -mt-1">ثانية</span></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+(function() {
+    const deadlineDate = new Date("{{ next_gameweek.deadline|date:'Y-m-d H:i:s' }}").getTime();
+
+    const timer = setInterval(function() {
+        const now = new Date().getTime();
+        const distance = deadlineDate - now;
+
+        if (distance < 0) {
+            clearInterval(timer);
+            document.getElementById("countdown-timer").innerHTML = "<span class='text-red-400 font-bold text-xs'>🔒 تم إغلاق التشكيلة لهذه الجولة</span>";
+            return;
+        }
+
+        document.getElementById("cd-days").innerText = String(Math.floor(distance / (1000 * 60 * 60 * 24))).padStart(2, '0');
+        document.getElementById("cd-hours").innerText = String(Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+        document.getElementById("cd-minutes").innerText = String(Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+        document.getElementById("cd-seconds").innerText = String(Math.floor((distance % (1000 * 60)) / 1000)).padStart(2, '0');
+    }, 1000);
+})();
+</script>
+{% endif %}

@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-3 sm:px-6 py-6 rtl">
+
+    <!-- العداد التنازلي العلوي -->
+    {% include "fantasy/partials/deadline_timer.html" %}
+
+    <!-- عنوان الصفحة -->
+    <div class="text-center my-6">
+        <h1 class="text-2xl sm:text-3xl font-black text-white tracking-wide">
+            📰 مركز الأخبار والجوائز
+        </h1>
+        <p class="text-xs sm:text-sm text-gray-400 mt-1">تابع حالة اللاعبين، أبطال الجولة، وتفاصيل المنافسة</p>
+    </div>
+
+    <!-- الشبكة الرئيسية -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- القسم الأول: الأخبار والمصابين والموقوفين (يشغل عامودين) -->
+        <div class="lg:col-span-2 space-y-4">
+            <div class="bg-[#240028] border border-gray-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                <h2 class="text-lg font-bold text-plGreen mb-4 flex items-center gap-2">
+                    <span>🚑</span>
+                    <span>المصابون والموقوفون والغيابات</span>
+                </h2>
+
+                <div class="space-y-3">
+                    {% for item in injuries_and_news %}
+                    <div class="bg-plDark/80 border border-gray-800 rounded-xl p-3 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <!-- شارة الاحتمالية -->
+                            {% if item.chance_of_playing == 0 %}
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">0% مستبعد</span>
+                            {% elif item.chance_of_playing <= 50 %}
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">{{ item.chance_of_playing }}% شكوك</span>
+                            {% else %}
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30">{{ item.chance_of_playing }}% مشارك</span>
+                            {% endif %}
+
+                            <div>
+                                <h3 class="font-bold text-sm text-white">{{ item.player.name }} <span class="text-xs text-gray-400">({{ item.player.team.name }})</span></h3>
+                                <p class="text-xs text-red-300 mt-0.5">{{ item.status_reason }}</p>
+                            </div>
+                        </div>
+
+                        <span class="text-[10px] text-gray-500 dir-ltr">{{ item.updated_at|date:"d/m H:i" }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-8 text-gray-400 text-xs">
+                        لا توجد إصابات أو إيقافات مسجلة حالياً 🎉
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- لوحة الجوائز -->
+            <div class="bg-[#240028] border border-gray-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                <h2 class="text-lg font-bold text-yellow-400 mb-4 flex items-center gap-2">
+                    <span>🏆</span>
+                    <span>لوحة جوائز الدوري</span>
+                </h2>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {% for prize in prizes %}
+                    <div class="bg-plDark border border-gray-800 rounded-xl p-3.5 flex items-start gap-3">
+                        <span class="text-2xl">{{ prize.icon_emoji }}</span>
+                        <div>
+                            <h3 class="font-bold text-sm text-white">{{ prize.title }}</h3>
+                            <p class="text-xs text-gray-400 mt-1 leading-relaxed">{{ prize.description }}</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-gray-400 col-span-2 text-center py-4">سيتم إعلان الجوائز قريباً.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- القسم الثاني: بطل الجولة وأفضل اللاعبين (يشغل عامود واحد) -->
+        <div class="space-y-4">
+            
+            <!-- بطل الجولة -->
+            <div class="bg-gradient-to-br from-yellow-950/40 via-[#240028] to-[#240028] border border-yellow-500/30 rounded-2xl p-4 shadow-xl">
+                <h2 class="text-base font-bold text-yellow-400 mb-3 flex items-center gap-2">
+                    <span>👑</span>
+                    <span>بطل الجولة الأخيرة</span>
+                </h2>
+
+                {% if manager_of_the_week %}
+                <div class="text-center bg-plDark/90 rounded-xl p-4 border border-yellow-500/20">
+                    <p class="text-xs text-gray-400">{{ manager_of_the_week.gameweek.name }}</p>
+                    <h3 class="text-lg font-black text-white mt-1">{{ manager_of_the_week.user_team.name }}</h3>
+                    <p class="text-xs text-gray-300">المدرب: {{ manager_of_the_week.user_team.user.username }}</p>
+                    
+                    <div class="mt-3 inline-block bg-yellow-500/20 border border-yellow-500/40 px-4 py-1.5 rounded-full">
+                        <span class="text-lg font-black text-yellow-400">{{ manager_of_the_week.points }}</span>
+                        <span class="text-xs text-yellow-200">نقطة</span>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-xs text-gray-400 text-center py-4">لم تبدأ الجوالات بعد.</p>
+                {% endif %}
+            </div>
+
+            <!-- أفضل اللاعبين أداءً -->
+            <div class="bg-[#240028] border border-gray-800 rounded-2xl p-4 shadow-xl">
+                <h2 class="text-base font-bold text-plGreen mb-3 flex items-center gap-2">
+                    <span>⭐</span>
+                    <span>الأعلى نقاطاً (حسب المركز)</span>
+                </h2>
+
+                <div class="space-y-2.5">
+                    {% for pos, player in top_performers.items %}
+                    <div class="bg-plDark rounded-xl p-2.5 border border-gray-800 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-800 text-plGreen">{{ pos }}</span>
+                            <div>
+                                <p class="text-xs font-bold text-white">{{ player.name }}</p>
+                                <p class="text-[10px] text-gray-400">{{ player.team.name }}</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-black text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded-lg">
+                            {{ player.gw_points }} ن
+                        </span>
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-gray-400 text-center py-4">لا توجد بيانات متاحة حالياً.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}

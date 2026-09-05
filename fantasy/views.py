@@ -1267,3 +1267,59 @@ def compare_players(request):
         return render(request, 'fantasy/partials/comparison_results.html', context)
 
     return render(request, 'fantasy/compare.html', context)
+
+from django.shortcuts import render, get_object_or_404
+from django.db.models import Sum, Max
+from django.utils import timezone
+from .models import Gameweek, PlayerStatusUpdate, Player, LeaguePrize, UserTeam, GameweekScore
+
+def news_and_awards(request):
+    now = timezone.now()
+    
+    # 1. الجولة القادمة للعداد التنازلي
+    next_gameweek = Gameweek.objects.filter(deadline__gt=now).order_by('deadline').first()
+    
+    # 2. الأخبار والمصابين والموقوفين (استبعاد المجهزين 100%)
+    injuries_and_news = PlayerStatusUpdate.objects.filter(
+        is_active=True
+    ).exclude(chance_of_playing=100).select_related('player', 'player__team').order_by('chance_of_playing', '-updated_at')
+
+    # 3. بطل الجولة الأخيرة المكتملة
+    last_finished_gw = Gameweek.objects.filter(is_finished=True).order_by('-number').first()
+    manager_of_the_week = None
+    
+    if last_finished_gw:
+        top_score = GameweekScore.objects.filter(gameweek=last_finished_gw).order_by('-points').first()
+        if top_score:
+            manager_of_the_week = {
+                'user_team': top_score.user_team,
+                'points': top_score.points,
+                'gameweek': last_finished_gw
+            }
+
+    # 4. أفضل اللاعبين أداءً في الجولة الأخيرة بكل مركز
+    top_performers = {}
+    if last_finished_gw:
+        positions = ['GK', 'DEF', 'MID', 'FWD']
+        for pos in positions:
+            top_player = Player.objects.filter(
+                position=pos,
+                gameweek_stats__gameweek=last_finished_gw
+            ).annotate(
+                gw_points=Sum('gameweek_stats__points')
+            ).order_by('-gw_points').first()
+            
+            if top_player:
+                top_performers[pos] = top_player
+
+    # 5. قائمة الجوائز
+    prizes = LeaguePrize.objects.all()
+
+    context = {
+        'next_gameweek': next_gameweek,
+        'injuries_and_news': injuries_and_news,
+        'manager_of_the_week': manager_of_the_week,
+        'top_performers': top_performers,
+        'prizes': prizes,
+    }
+    return render(request, 'fantasy/news_and_awards.html', context)

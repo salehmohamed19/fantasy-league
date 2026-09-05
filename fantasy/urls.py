@@ -33,6 +33,9 @@ urlpatterns = [
     path('enter-stats/', views.enter_match_stats, name='enter_match_stats'),
     path('player/<int:player_id>/modal/', views.player_detail_modal, name='player_detail_modal'),
     path('compare/', views.compare_players, name='compare_players'),
+    path('news/', views.news_list_view, name='news_list'),
+    path('awards/', views.awards_list_view, name='awards_list'),
+    
     # المصادقة والحسابات
     path('login/', LoginView.as_view(template_name='fantasy/login.html', redirect_authenticated_user=True), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),

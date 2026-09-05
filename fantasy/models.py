@@ -79,7 +79,7 @@ class Player(models.Model):
     has_yellow_card = models.BooleanField(default=False, verbose_name="يوجد إنذار سابق (أصفر)")
     has_red_card = models.BooleanField(default=False, verbose_name="حاصل على كارت أحمر / طرد")
 
-    # حالة الإصابة والأخبار
+    # حالة الإصابة والأخبار السريعة
     is_injured = models.BooleanField(default=False, verbose_name="مصاب / مشكوك بمشاركته")
     injury_news = models.CharField(max_length=255, blank=True, null=True, verbose_name="تفاصيل الإصابة")
     chance_of_playing = models.PositiveIntegerField(default=100, verbose_name="نسبة احتمالية المشاركة %")
@@ -242,17 +242,13 @@ class PlayerGameweekStat(models.Model):
         if player_updated:
             self.player.save()
 
-        # ==========================================
-        # خوارزمية حساب النقاط التفصيلية
-        # ==========================================
+        # حساب النقاط
         pts = 0
         category = self.player.main_category
 
-        # 1. نقاط المشاركة (+2 فورية)
         if self.played:
             pts += 2
 
-        # 2. حساب أهداف اللاعب حسب المركز
         if category in ['GK', 'DEF']:
             pts += (self.goals * 6)
         elif category == 'MID':
@@ -260,27 +256,23 @@ class PlayerGameweekStat(models.Model):
         elif category == 'FWD':
             pts += (self.goals * 4)
 
-        # 3. الأسيست (+3 لجميع المراكز)
         pts += (self.assists * 3)
 
-        # 4. النظافة التهديفية (Clean Sheet)
         if self.clean_sheet:
             if category in ['GK', 'DEF']:
                 pts += 4
             elif category == 'MID':
                 pts += 1
 
-        # 5. ضربات الجزاء (+5 للتصدي للحارس / -2 للإهدار)
         if category == 'GK':
             pts += (self.penalties_saved * 5)
         pts -= (self.penalties_missed * 2)
 
-        # 6. الخصومات والعقوبات
-        pts -= (self.own_goals * 2)  # الهدف العكسي -2
+        pts -= (self.own_goals * 2)
         if self.yellow_card:
-            pts -= 1                  # الكارت الأصفر -1
+            pts -= 1
         if self.red_card:
-            pts -= 3                  # الكارت الأحمر -3
+            pts -= 3
 
         self.points = pts
 
@@ -360,7 +352,7 @@ class UserSquad(models.Model):
         return f"تشكيلة {self.user_team.name} - {self.gameweek}"
 
 
-# 9. مركز الأخبار والتحديثات
+# 9. مركز الأخبار والتحديثات العامة
 class NewsAndUpdate(models.Model):
     league = models.ForeignKey(League, on_delete=models.CASCADE, related_name='news', verbose_name="الدوري")
     title = models.CharField(max_length=200, verbose_name="عنوان الخبر")
@@ -377,7 +369,54 @@ class NewsAndUpdate(models.Model):
         return self.title
 
 
-# 10. بروفايل المستخدم
+# 10. تحديثات إصابات وغيابات اللاعبين (مضاف جديد لمركز الإصابات)
+class PlayerStatusUpdate(models.Model):
+    PLAY_CHANCE_CHOICES = [
+        (0, 'مستبعد / مصاب (0%)'),
+        (25, 'شكوك عالية (25%)'),
+        (50, 'شكوك متوسطة (50%)'),
+        (75, 'احتمال كبير للمشاركة (75%)'),
+        (100, 'جاهز للعب (100%)'),
+    ]
+
+    player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='status_updates', verbose_name="اللاعب")
+    status_reason = models.CharField(max_length=255, verbose_name="سبب الغياب/الشك (مثال: إصابة خلفية، إيقاف كروت)")
+    chance_of_playing = models.IntegerField(choices=PLAY_CHANCE_CHOICES, default=0, verbose_name="احتمالية اللعب")
+    news_text = models.TextField(blank=True, null=True, verbose_name="تفاصيل إضافية للخبر")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    is_active = models.BooleanField(default=True, verbose_name="خبر نشط")
+
+    class Meta:
+        verbose_name = "تحديث حالة لاعب"
+        verbose_name_plural = "تحديثات حالات اللاعبين"
+
+    def __str__(self):
+        return f"{self.player.name} - {self.get_chance_of_playing_display()}"
+
+
+# 11. لوحة جوائز الدوري (مضاف جديد)
+class LeaguePrize(models.Model):
+    PRIZE_TYPE_CHOICES = [
+        ('season', 'بطل الموسم'),
+        ('monthly', 'بطل الشهر'),
+        ('gameweek', 'بطل الجولة'),
+    ]
+    title = models.CharField(max_length=150, verbose_name="عنوان الجائزة")
+    prize_type = models.CharField(max_length=20, choices=PRIZE_TYPE_CHOICES, default='season', verbose_name="نوع الجائزة")
+    description = models.TextField(verbose_name="وصف الجائزة أو المكافأة")
+    icon_emoji = models.CharField(max_length=10, default="🏆", verbose_name="رمز تعبيري (Emoji)")
+    order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = "جائزة الدوري"
+        verbose_name_plural = "جوائز الدوري"
+
+    def __str__(self):
+        return self.title
+
+
+# 12. بروفايل المستخدم
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', verbose_name="المستخدم")
     avatar = CloudinaryField('الصورة الشخصية', folder='avatars/', null=True, blank=True)
