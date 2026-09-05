@@ -1,102 +1,99 @@
-<div class="modal-header border-b border-purple-800/40 p-4 flex justify-between items-center bg-[#240028]">
-    <div class="flex items-center gap-3">
-        {% if player.photo %}
-            <img src="{{ player.photo.url }}" class="w-12 h-12 rounded-full object-cover border-2 border-plGreen shadow">
-        {% elif player.team.logo %}
-            <img src="{{ player.team.logo.url }}" class="w-10 h-10 object-contain">
-        {% endif %}
-        <div class="text-right">
-            <h5 class="modal-title font-black text-white text-base leading-tight" id="playerModalLabel">{{ player.name }}</h5>
-            <span class="text-xs text-purple-300 font-bold block mt-0.5">{{ player.team.name }}</span>
-        </div>
-    </div>
-    <button type="button" class="text-gray-400 hover:text-white font-bold text-xl leading-none transition" data-bs-dismiss="modal" aria-label="Close">✕</button>
-</div>
+<!-- الحاوية الخارجية مع تغطية ناعمة لخلفية الملعب وموقع محدد بالقرب من الأعلى -->
+<div id="player-modal-overlay" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center pt-8 md:pt-16 px-4 overflow-y-auto animate-fade-in">
+    
+    <!-- كارت التفاصيل والإحصائيات -->
+    <div class="bg-gray-900 border border-gray-800 text-white rounded-2xl w-full max-w-md p-5 shadow-2xl relative overflow-hidden transform transition-all">
+        
+        <!-- زر الإغلاق -->
+        <button type="button" 
+                onclick="document.getElementById('player-modal-overlay').remove()" 
+                class="absolute top-4 left-4 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors border border-gray-700 focus:outline-none">
+            <span class="text-lg leading-none">&times;</span>
+        </button>
 
-<div class="modal-body p-4 bg-[#1a001e] text-white space-y-4">
-    <!-- معلومات مركزية -->
-    <div class="flex justify-between items-center p-3 bg-purple-950/70 rounded-xl border border-purple-800/40 shadow-sm">
-        <div class="flex items-center gap-2">
-            <span class="bg-plGreen text-plDark font-black text-xs px-2.5 py-1 rounded-full">{{ player.get_position_display|default:player.position }}</span>
-            <span class="bg-yellow-400 text-black font-black text-xs px-2.5 py-1 rounded-full">{{ player.price }}M</span>
+        <!-- الهيدر: صورة اللاعب، الاسم، الفريق، والمركز -->
+        <div class="flex items-center space-x-4 space-x-reverse mb-6">
+            <div class="w-16 h-16 rounded-full bg-gray-800 border-2 border-emerald-500 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                {% if player.photo %}
+                    <img src="{{ player.photo.url }}" alt="{{ player.name }}" class="w-full h-full object-cover">
+                {% else %}
+                    <span class="text-2xl text-emerald-400 font-bold">{{ player.name|first }}</span>
+                {% endif %}
+            </div>
+            
+            <div class="flex-grow">
+                <h3 class="text-xl font-bold text-white tracking-wide">{{ player.name }}</h3>
+                <div class="flex items-center text-sm text-gray-400 mt-1 space-x-2 space-x-reverse">
+                    <span class="bg-gray-800 px-2 py-0.5 rounded text-gray-300 border border-gray-700">
+                        {{ player.team.name }}
+                    </span>
+                    <span class="text-emerald-400 font-semibold">
+                        {{ player.get_position_display }}
+                    </span>
+                </div>
+            </div>
         </div>
-        <div class="text-left">
-            <span class="block text-[10px] text-gray-400 font-bold">نسبة الملكية</span>
-            <strong class="text-sm font-black text-emerald-400">{{ ownership }}%</strong>
-        </div>
-    </div>
 
-    <!-- تنبيه الإصابة أو الإيقاف -->
-    {% if player.is_suspended %}
-        <div class="bg-red-950/80 border border-red-500/50 p-2.5 rounded-xl flex items-center gap-2 text-xs text-red-200 font-bold">
-            <span>🚫</span>
-            <span>موقوف: متبقي {{ player.suspended_matches_left }} مباراة.</span>
+        <!-- السعر ونسبة الملكية -->
+        <div class="grid grid-cols-2 gap-3 mb-6 bg-gray-800/60 p-3 rounded-xl border border-gray-800 text-center">
+            <div>
+                <span class="text-xs text-gray-400 block mb-1">السعر الحالي</span>
+                <span class="text-lg font-extrabold text-emerald-400">{{ player.price }}M</span>
+            </div>
+            <div>
+                <span class="text-xs text-gray-400 block mb-1">نسبة الملكية</span>
+                <span class="text-lg font-extrabold text-blue-400">{{ ownership }}%</span>
+            </div>
         </div>
-    {% elif player.is_injured %}
-        <div class="bg-amber-950/80 border border-amber-500/50 p-2.5 rounded-xl flex items-center gap-2 text-xs text-amber-200 font-bold">
-            <span>⚠️</span>
-            <span>مصاب: {{ player.injury_news|default:"مشاركته مشكوك بها" }} ({{ player.chance_of_playing }}%)</span>
-        </div>
-    {% endif %}
 
-    <!-- شبكة الإحصائيات -->
-    <div>
-        <h6 class="font-black text-xs text-gray-300 mb-2 text-right uppercase tracking-wider">إحصائيات الموسم</h6>
-        <div class="grid grid-cols-3 gap-2 text-center mb-2">
-            <div class="p-2.5 bg-purple-950/60 border border-purple-800/40 rounded-xl">
-                <span class="block text-[10px] text-purple-300 font-bold mb-0.5">النقاط</span>
-                <strong class="text-base font-black text-plGreen">{{ stats.total_points|default:"0" }}</strong>
+        <!-- أرقام إحصائيات الموسم -->
+        <h4 class="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">إحصائيات الموسم</h4>
+        <div class="grid grid-cols-3 gap-2 mb-6">
+            <div class="bg-gray-800/40 p-2.5 rounded-lg border border-gray-800 text-center">
+                <span class="text-xs text-gray-400 block">إجمالي النقاط</span>
+                <span class="text-base font-bold text-yellow-400 mt-1 block">{{ stats.total_points }}</span>
             </div>
-            <div class="p-2.5 bg-purple-950/60 border border-purple-800/40 rounded-xl">
-                <span class="block text-[10px] text-purple-300 font-bold mb-0.5">الأهداف</span>
-                <strong class="text-base font-black text-yellow-400">{{ stats.total_goals|default:"0" }}</strong>
+            <div class="bg-gray-800/40 p-2.5 rounded-lg border border-gray-800 text-center">
+                <span class="text-xs text-gray-400 block">الأهداف</span>
+                <span class="text-base font-bold text-white mt-1 block">{{ stats.total_goals }}</span>
             </div>
-            <div class="p-2.5 bg-purple-950/60 border border-purple-800/40 rounded-xl">
-                <span class="block text-[10px] text-purple-300 font-bold mb-0.5">الأسيست</span>
-                <strong class="text-base font-black text-sky-400">{{ stats.total_assists|default:"0" }}</strong>
+            <div class="bg-gray-800/40 p-2.5 rounded-lg border border-gray-800 text-center">
+                <span class="text-xs text-gray-400 block">الصناعة</span>
+                <span class="text-base font-bold text-white mt-1 block">{{ stats.total_assists }}</span>
+            </div>
+            <div class="bg-gray-800/40 p-2.5 rounded-lg border border-gray-800 text-center">
+                <span class="text-xs text-gray-400 block">المباريات</span>
+                <span class="text-base font-bold text-gray-200 mt-1 block">{{ stats.matches_played }}</span>
+            </div>
+            <div class="bg-gray-800/40 p-2.5 rounded-lg border border-gray-800 text-center">
+                <span class="text-xs text-gray-400 block">شباك نظيفة</span>
+                <span class="text-base font-bold text-gray-200 mt-1 block">{{ stats.clean_sheets }}</span>
+            </div>
+            <div class="bg-gray-800/40 p-2.5 rounded-lg border border-gray-800 text-center">
+                <span class="text-xs text-gray-400 block">الكروت</span>
+                <div class="flex items-center justify-center space-x-2 space-x-reverse mt-1">
+                    <span class="text-xs text-yellow-400 font-bold">🟨 {{ stats.yellow_cards }}</span>
+                    <span class="text-xs text-red-500 font-bold">🟥 {{ stats.red_cards }}</span>
+                </div>
             </div>
         </div>
-        <div class="grid grid-cols-2 gap-2 text-center">
-            <div class="p-2 bg-purple-950/60 border border-purple-800/40 rounded-xl">
-                <span class="block text-[10px] text-purple-300 font-bold mb-0.5">المشاركات</span>
-                <strong class="text-xs font-black text-white">{{ stats.matches_played|default:"0" }} مباراة</strong>
-            </div>
-            <div class="p-2 bg-purple-950/60 border border-purple-800/40 rounded-xl">
-                <span class="block text-[10px] text-purple-300 font-bold mb-0.5">كلين شيت</span>
-                <strong class="text-xs font-black text-white">{{ stats.clean_sheets|default:"0" }}</strong>
-            </div>
-        </div>
-    </div>
 
-    <!-- جدول المباريات القادمة -->
-    <div>
-        <h6 class="font-black text-xs text-gray-300 mb-2 text-right uppercase tracking-wider">المباريات القادمة</h6>
-        {% if next_matches %}
-            <div class="space-y-1.5">
-                {% for match in next_matches %}
-                    <div class="flex justify-between items-center bg-purple-950/40 border border-purple-900/40 p-2 rounded-lg text-xs">
-                        <span class="font-bold flex items-center gap-1.5">
-                            <span class="text-purple-300 text-[10px]">جولة {{ match.gameweek.number }}:</span>
-                            {% if match.home_team == player.team %}
-                                <strong class="text-white">{{ match.away_team.name }}</strong> 
-                                <span class="bg-emerald-950 text-emerald-400 text-[9px] px-1.5 py-0.5 rounded border border-emerald-800/50">ملعبه</span>
-                            {% else %}
-                                <strong class="text-white">{{ match.home_team.name }}</strong> 
-                                <span class="bg-gray-800 text-gray-300 text-[9px] px-1.5 py-0.5 rounded border border-gray-700">خارج</span>
-                            {% endif %}
-                        </span>
-                        <span class="text-gray-400 text-[10px]">{{ match.match_date|date:"d/m" }}</span>
+        <!-- المباريات القادمة -->
+        <h4 class="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">المباريات القادمة</h4>
+        <div class="space-y-2">
+            {% for match in next_matches %}
+                <div class="flex items-center justify-between bg-gray-800/30 p-2.5 rounded-lg border border-gray-800/50 text-xs text-gray-300">
+                    <span class="font-medium">الجولة {{ match.gameweek.number }}</span>
+                    <div class="flex items-center space-x-2 space-x-reverse font-bold text-white">
+                        <span>{{ match.home_team.name }}</span>
+                        <span class="text-gray-500">VS</span>
+                        <span>{{ match.away_team.name }}</span>
                     </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="p-2.5 text-center text-xs text-purple-300 bg-purple-950/30 border border-dashed border-purple-800/40 rounded-xl">
-                لا توجد مباريات قادمة مبرمجة حالياً.
-            </div>
-        {% endif %}
-    </div>
-</div>
+                </div>
+            {% empty %}
+                <p class="text-xs text-gray-500 text-center py-2">لا توجد مباريات قادمة مسجلة حالياً.</p>
+            {% endfor %}
+        </div>
 
-<div class="modal-footer border-t border-purple-800/40 p-3 bg-[#240028] flex justify-end">
-    <button type="button" class="bg-gray-800 hover:bg-gray-700 text-white font-bold text-xs px-4 py-2 rounded-lg transition" data-bs-dismiss="modal">إغلاق</button>
+    </div>
 </div>
