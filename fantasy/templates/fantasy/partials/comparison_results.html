@@ -1,0 +1,85 @@
+{% if p1 and p2 %}
+<div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 md:p-6 shadow-2xl">
+    
+    <!-- الهيدر: أسماء وصور اللاعبين -->
+    <div class="grid grid-cols-3 items-center text-center pb-6 border-b border-gray-800">
+        <!-- اللاعب الأول -->
+        <div class="flex flex-col items-center">
+            <div class="w-16 h-16 rounded-full bg-gray-800 border-2 border-emerald-500 overflow-hidden mb-2 p-1">
+                {% if p1.player.photo %}
+                    <img src="{{ p1.player.photo.url }}" class="w-full h-full object-cover rounded-full">
+                {% elif p1.player.team.logo %}
+                    <img src="{{ p1.player.team.logo.url }}" class="w-full h-full object-contain">
+                {% else %}
+                    <span class="text-xl font-bold text-emerald-400">{{ p1.player.name|first }}</span>
+                {% endif %}
+            </div>
+            <h3 class="font-bold text-sm md:text-base text-white">{{ p1.player.name }}</h3>
+            <span class="text-xs text-gray-400">{{ p1.player.team.name }}</span>
+        </div>
+
+        <!-- VS -->
+        <div class="text-center">
+            <span class="bg-gray-800 text-yellow-400 font-extrabold px-3 py-1.5 rounded-full text-xs border border-gray-700">VS</span>
+        </div>
+
+        <!-- اللاعب الثاني -->
+        <div class="flex flex-col items-center">
+            <div class="w-16 h-16 rounded-full bg-gray-800 border-2 border-blue-500 overflow-hidden mb-2 p-1">
+                {% if p2.player.photo %}
+                    <img src="{{ p2.player.photo.url }}" class="w-full h-full object-cover rounded-full">
+                {% elif p2.player.team.logo %}
+                    <img src="{{ p2.player.team.logo.url }}" class="w-full h-full object-contain">
+                {% else %}
+                    <span class="text-xl font-bold text-blue-400">{{ p2.player.name|first }}</span>
+                {% endif %}
+            </div>
+            <h3 class="font-bold text-sm md:text-base text-white">{{ p2.player.name }}</h3>
+            <span class="text-xs text-gray-400">{{ p2.player.team.name }}</span>
+        </div>
+    </div>
+
+    <!-- جدول مقارنة الأرقام -->
+    <div class="space-y-3 mt-6">
+        
+        <!-- السعر -->
+        <div class="grid grid-cols-3 text-center items-center p-2 rounded-lg bg-gray-800/40 text-sm">
+            <span class="font-bold text-emerald-400 {% if p1.player.price <= p2.player.price %}underline{% endif %}">{{ p1.player.price }}M</span>
+            <span class="text-xs text-gray-400">السعر</span>
+            <span class="font-bold text-blue-400 {% if p2.player.price <= p1.player.price %}underline{% endif %}">{{ p2.player.price }}M</span>
+        </div>
+
+        <!-- إجمالي النقاط -->
+        <div class="grid grid-cols-3 text-center items-center p-2 rounded-lg bg-gray-800/40 text-sm">
+            <span class="font-bold text-yellow-400 {% if p1.total_points > p2.total_points %}text-base font-black{% endif %}">{{ p1.total_points }}</span>
+            <span class="text-xs text-gray-400">إجمالي النقاط</span>
+            <span class="font-bold text-yellow-400 {% if p2.total_points > p1.total_points %}text-base font-black{% endif %}">{{ p2.total_points }}</span>
+        </div>
+
+        <!-- الأهداف -->
+        <div class="grid grid-cols-3 text-center items-center p-2 rounded-lg bg-gray-800/40 text-sm">
+            <span class="font-bold {% if p1.goals > p2.goals %}text-emerald-400{% endif %}">{{ p1.goals }}</span>
+            <span class="text-xs text-gray-400">الأهداف</span>
+            <span class="font-bold {% if p2.goals > p1.goals %}text-emerald-400{% endif %}">{{ p2.goals }}</span>
+        </div>
+
+        <!-- الصناعة -->
+        <div class="grid grid-cols-3 text-center items-center p-2 rounded-lg bg-gray-800/40 text-sm">
+            <span class="font-bold {% if p1.assists > p2.assists %}text-emerald-400{% endif %}">{{ p1.assists }}</span>
+            <span class="text-xs text-gray-400">الصناعة</span>
+            <span class="font-bold {% if p2.assists > p1.assists %}text-emerald-400{% endif %}">{{ p2.assists }}</span>
+        </div>
+
+        <!-- نسبة الملكية -->
+        <div class="grid grid-cols-3 text-center items-center p-2 rounded-lg bg-gray-800/40 text-sm">
+            <span class="font-bold">{{ p1.ownership }}%</span>
+            <span class="text-xs text-gray-400">نسبة الملكية</span>
+            <span class="font-bold">{{ p2.ownership }}%</span>
+        </div>
+
+    </div>
+
+</div>
+{% else %}
+    <p class="text-center text-gray-500 text-sm py-8">قم باختيار لاعبين اثنين للبدء في المقارنة.</p>
+{% endif %}

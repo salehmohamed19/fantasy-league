@@ -1201,3 +1201,55 @@ def player_detail_modal(request, player_id):
     }
     
     return render(request, 'fantasy/partials/player_modal.html', context)
+
+from django.db.models import Q
+
+@login_required
+def compare_players(request):
+    p1_id = request.GET.get('player1')
+    p2_id = request.GET.get('player2')
+
+    player1 = Player.objects.filter(id=p1_id).first() if p1_id else None
+    player2 = Player.objects.filter(id=p2_id).first() if p2_id else None
+
+    def get_player_data(player):
+        if not player:
+            return None
+        
+        stats = player.gameweek_stats.filter(gameweek__is_published=True)
+        
+        # المباريات القادمة
+        next_matches = Match.objects.filter(
+            Q(home_team=player.team) | Q(away_team=player.team),
+            is_finished=False
+        ).select_related('home_team', 'away_team', 'gameweek').order_by('match_date')[:3]
+
+        return {
+            'player': player,
+            'total_points': stats.aggregate(total=Sum('points'))['total'] or 0,
+            'goals': stats.aggregate(total=Sum('goals'))['total'] or 0,
+            'assists': stats.aggregate(total=Sum('assists'))['total'] or 0,
+            'matches_played': stats.filter(played=True).count(),
+            'clean_sheets': stats.filter(clean_sheet=True).count(),
+            'yellow_cards': stats.filter(yellow_card=True).count(),
+            'red_cards': stats.filter(red_card=True).count(),
+            'ownership': getattr(player, 'ownership_percentage', lambda: 0)(),
+            'next_matches': next_matches,
+        }
+
+    # جلب قائمة جميع اللاعبين للاختيار منها
+    active_league_id = request.session.get('active_league_id')
+    all_players = Player.objects.filter(team__league_id=active_league_id).select_related('team') if active_league_id else Player.objects.select_related('team')
+
+    context = {
+        'p1': get_player_data(player1),
+        'p2': get_player_data(player2),
+        'all_players': all_players,
+        'selected_p1_id': int(p1_id) if p1_id and p1_id.isdigit() else None,
+        'selected_p2_id': int(p2_id) if p2_id and p2_id.isdigit() else None,
+    }
+
+    if request.headers.get('HX-Request'):
+        return render(request, 'fantasy/partials/comparison_results.html', context)
+
+    return render(request, 'fantasy/compare.html', context)
