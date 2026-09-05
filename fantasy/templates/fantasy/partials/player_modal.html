@@ -1,91 +1,96 @@
-<div class="modal-header bg-dark text-white">
-    <h5 class="modal-title fs-5" id="playerModalLabel">
-        <i class="bi bi-person-badge me-2"></i>{{ player.name }}
-    </h5>
+<div class="modal-header bg-dark text-white border-bottom-0">
+    <div class="d-flex align-items-center gap-2">
+        {% if player.photo %}
+            <img src="{{ player.photo.url }}" class="rounded-circle" width="45" height="45" style="object-fit: cover;">
+        {% endif %}
+        <div>
+            <h5 class="modal-title fw-bold mb-0" id="playerModalLabel">{{ player.name }}</h5>
+            <small class="text-white-50">{{ player.team.name }}</small>
+        </div>
+    </div>
     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
 
-<div class="modal-body text-end">
-    <!-- معلومات اللاعب الأساسية -->
-    <div class="d-flex align-items-center mb-3 p-2 bg-light rounded">
-        <div class="flex-grow-1">
-            <h6 class="mb-1 fw-bold">{{ player.team.name }}</h6>
-            <span class="badge bg-secondary me-1">{{ player.get_position_display }}</span>
-            <span class="badge bg-success">السعر: {{ player.price }}M</span>
+<div class="modal-body bg-light text-end dir-rtl p-3">
+    <!-- معلومات مركزية -->
+    <div class="d-flex justify-content-between align-items-center p-3 mb-3 bg-white rounded shadow-sm">
+        <div>
+            <span class="badge bg-primary fs-6 me-1">{{ player.get_position_display }}</span>
+            <span class="badge bg-dark fs-6">{{ player.price }}M</span>
         </div>
         <div class="text-start">
-            <small class="text-muted d-block">نسبة الملكية</small>
-            <strong class="text-primary fs-5">{{ ownership }}%</strong>
+            <small class="text-muted d-block fs-7">نسبة الملكية</small>
+            <strong class="text-success fs-5">{{ ownership }}%</strong>
         </div>
     </div>
 
-    <!-- حالة الإيقاف أو الإصابة -->
+    <!-- تنبيه الإصابة أو الإيقاف -->
     {% if player.is_suspended %}
-        <div class="alert alert-danger p-2 mb-3">
-            <i class="bi bi-exclamation-triangle-fill me-1"></i>
-            <strong>موقوف:</strong> متبقي {{ player.suspended_matches_left }} مباراة.
+        <div class="alert alert-danger d-flex align-items-center p-2 mb-3 fs-7">
+            <div>موقوف: متبقي {{ player.suspended_matches_left }} مباراة.</div>
         </div>
     {% elif player.is_injured %}
-        <div class="alert alert-warning p-2 mb-3">
-            <i class="bi bi-hospital me-1"></i>
-            <strong>مصاب:</strong> {{ player.injury_news|default:"نسبة المشاركة" }} ({{ player.chance_of_playing }}%)
+        <div class="alert alert-warning d-flex align-items-center p-2 mb-3 fs-7">
+            <div>مصاب: {{ player.injury_news|default:"مشاركته مشكوك بها" }} ({{ player.chance_of_playing }}%)</div>
         </div>
     {% endif %}
 
-    <!-- ملخص الإحصائيات -->
-    <h6 class="fw-bold border-bottom pb-2 mb-2">إحصائيات الموسم</h6>
+    <!-- شبكة الإحصائيات -->
+    <h6 class="fw-bold mb-2 text-secondary fs-7">إحصائيات الموسم</h6>
     <div class="row g-2 text-center mb-3">
         <div class="col-4">
-            <div class="p-2 border rounded bg-light">
+            <div class="p-2 bg-white rounded border shadow-sm">
                 <small class="text-muted d-block">النقاط</small>
-                <strong class="fs-5 text-primary">{{ stats.total_points }}</strong>
+                <strong class="fs-4 text-primary">{{ stats.total_points }}</strong>
             </div>
         </div>
         <div class="col-4">
-            <div class="p-2 border rounded bg-light">
+            <div class="p-2 bg-white rounded border shadow-sm">
                 <small class="text-muted d-block">الأهداف</small>
-                <strong class="fs-5 text-success">{{ stats.total_goals }}</strong>
+                <strong class="fs-4 text-success">{{ stats.total_goals }}</strong>
             </div>
         </div>
         <div class="col-4">
-            <div class="p-2 border rounded bg-light">
+            <div class="p-2 bg-white rounded border shadow-sm">
                 <small class="text-muted d-block">الأسيست</small>
-                <strong class="fs-5 text-info">{{ stats.total_assists }}</strong>
+                <strong class="fs-4 text-info">{{ stats.total_assists }}</strong>
             </div>
         </div>
         <div class="col-6">
-            <div class="p-2 border rounded bg-light">
-                <small class="text-muted d-block">المشاركـات</small>
-                <strong class="fs-6">{{ stats.matches_played }} مباراة</strong>
+            <div class="p-2 bg-white rounded border shadow-sm">
+                <small class="text-muted d-block">المشاركات</small>
+                <strong class="fs-6 text-dark">{{ stats.matches_played }} مباراة</strong>
             </div>
         </div>
         <div class="col-6">
-            <div class="p-2 border rounded bg-light">
+            <div class="p-2 bg-white rounded border shadow-sm">
                 <small class="text-muted d-block">كلين شيت</small>
-                <strong class="fs-6">{{ stats.clean_sheets }}</strong>
+                <strong class="fs-6 text-dark">{{ stats.clean_sheets }}</strong>
             </div>
         </div>
     </div>
 
-    <!-- المباريات القادمة -->
-    <h6 class="fw-bold border-bottom pb-2 mb-2">المباريات القادمة</h6>
+    <!-- جدول المباريات القادمة -->
+    <h6 class="fw-bold mb-2 text-secondary fs-7">المباريات القادمة</h6>
     {% if next_matches %}
-        <ul class="list-group list-group-flush small">
+        <ul class="list-group list-group-flush rounded border bg-white small">
             {% for match in next_matches %}
-                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
                     <span>
-                        الجولة {{ match.gameweek.number }}: 
+                        جولة {{ match.gameweek.number }}: 
                         {% if match.home_team == player.team %}
-                            <strong>{{ match.away_team.name }}</strong> (داخل ملعبه)
+                            <strong>{{ match.away_team.name }}</strong> <span class="badge bg-light text-dark border">ملعبه</span>
                         {% else %}
-                            <strong>{{ match.home_team.name }}</strong> (خارج ملعبه)
+                            <strong>{{ match.home_team.name }}</strong> <span class="badge bg-light text-dark border">خارج</span>
                         {% endif %}
                     </span>
-                    <span class="text-muted">{{ match.match_date|date:"Y-m-d" }}</span>
+                    <small class="text-muted">{{ match.match_date|date:"d/m" }}</small>
                 </li>
             {% endfor %}
         </ul>
     {% else %}
-        <p class="text-muted small mb-0">لا توجد مباريات قادمة مبرمجة حالياً.</p>
+        <div class="p-2 text-center text-muted bg-white border rounded fs-7">
+            لا توجد مباريات قادمة مبرمجة حالياً.
+        </div>
     {% endif %}
 </div>

@@ -271,7 +271,7 @@
                                 <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
                                      class="w-full h-full p-1 cursor-pointer"
                                      hx-get="{% url 'player_detail_modal' player.id %}"
-                                     hx-target="#playerModal"
+                                     hx-target="#player-modal-content"
                                      data-bs-toggle="modal"
                                      data-bs-target="#playerModal">
                                     {% if player.team.logo %}
@@ -291,7 +291,7 @@
                             </div>
                             <div class="pitch-name-tag"
                                  hx-get="{% url 'player_detail_modal' player.id %}"
-                                 hx-target="#playerModal"
+                                 hx-target="#player-modal-content"
                                  data-bs-toggle="modal"
                                  data-bs-target="#playerModal">
                                 {{ player.name }}
@@ -329,7 +329,7 @@
                                 <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
                                      class="w-full h-full p-1 cursor-pointer"
                                      hx-get="{% url 'player_detail_modal' player.id %}"
-                                     hx-target="#playerModal"
+                                     hx-target="#player-modal-content"
                                      data-bs-toggle="modal"
                                      data-bs-target="#playerModal">
                                     {% if player.team.logo %}
@@ -349,7 +349,7 @@
                             </div>
                             <div class="pitch-name-tag"
                                  hx-get="{% url 'player_detail_modal' player.id %}"
-                                 hx-target="#playerModal"
+                                 hx-target="#player-modal-content"
                                  data-bs-toggle="modal"
                                  data-bs-target="#playerModal">
                                 {{ player.name }}
@@ -387,7 +387,7 @@
                                 <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
                                      class="w-full h-full p-1 cursor-pointer"
                                      hx-get="{% url 'player_detail_modal' player.id %}"
-                                     hx-target="#playerModal"
+                                     hx-target="#player-modal-content"
                                      data-bs-toggle="modal"
                                      data-bs-target="#playerModal">
                                     {% if player.team.logo %}
@@ -407,7 +407,7 @@
                             </div>
                             <div class="pitch-name-tag"
                                  hx-get="{% url 'player_detail_modal' player.id %}"
-                                 hx-target="#playerModal"
+                                 hx-target="#player-modal-content"
                                  data-bs-toggle="modal"
                                  data-bs-target="#playerModal">
                                 {{ player.name }}
@@ -445,7 +445,7 @@
                                 <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
                                      class="w-full h-full p-1 cursor-pointer"
                                      hx-get="{% url 'player_detail_modal' player.id %}"
-                                     hx-target="#playerModal"
+                                     hx-target="#player-modal-content"
                                      data-bs-toggle="modal"
                                      data-bs-target="#playerModal">
                                     {% if player.team.logo %}
@@ -465,7 +465,7 @@
                             </div>
                             <div class="pitch-name-tag"
                                  hx-get="{% url 'player_detail_modal' player.id %}"
-                                 hx-target="#playerModal"
+                                 hx-target="#player-modal-content"
                                  data-bs-toggle="modal"
                                  data-bs-target="#playerModal">
                                 {{ player.name }}
@@ -564,7 +564,7 @@
 
                     <div class="relative cursor-pointer"
                          hx-get="{% url 'player_detail_modal' player.id %}"
-                         hx-target="#playerModal"
+                         hx-target="#player-modal-content"
                          data-bs-toggle="modal"
                          data-bs-target="#playerModal">
                         <div style="width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;" class="p-1">
@@ -579,7 +579,7 @@
                     
                     <span class="text-[11px] text-gray-100 font-extrabold mt-1.5 w-full truncate text-center cursor-pointer hover:text-yellow-400 transition"
                           hx-get="{% url 'player_detail_modal' player.id %}"
-                          hx-target="#playerModal"
+                          hx-target="#player-modal-content"
                           data-bs-toggle="modal"
                           data-bs-target="#playerModal">
                         {{ player.name }}
@@ -697,10 +697,12 @@
 
 </div>
 
-<!-- حاوية المودال الديناميكية -->
-<div class="modal fade" id="playerModal" tabindex="-1" aria-hidden="true">
+<!-- حاوية المودال المنبثقة الحاوية بأسلوب Bootstrap -->
+<div class="modal fade" id="playerModal" tabindex="-1" aria-labelledby="playerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <!-- يتم التحميل هنا عبر HTMX -->
+        <div class="modal-content text-dark" id="player-modal-content">
+            <!-- يتم تحميل كود player_modal.html هنا عبر HTMX -->
+        </div>
     </div>
 </div>
 
