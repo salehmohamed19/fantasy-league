@@ -138,12 +138,15 @@ class Player(models.Model):
     def __str__(self):
         return f"{self.name} ({self.get_position_display()}) - {self.team.name}"
 
-
 # 5. الجولات
 class Gameweek(models.Model):
     league = models.ForeignKey(League, on_delete=models.CASCADE, verbose_name="الدوري")
     number = models.PositiveIntegerField(verbose_name="رقم الجولة")
-    deadline = models.DateTimeField(null=True, blank=True, verbose_name="موعد إغلاق التشكيلة (Deadline)")
+    
+    # حقول المواعيد الجديدة
+    start_date = models.DateTimeField(null=True, blank=True, verbose_name="موعد فتح التشكيلة (الخميس 16:00)")
+    deadline = models.DateTimeField(null=True, blank=True, verbose_name="موعد إغلاق التشكيلة (السبت 16:00)")
+    
     is_open = models.BooleanField(default=True, verbose_name="باب التغيير مفتوح")
     is_finished = models.BooleanField(default=False, verbose_name="مغلقة/منتهية")
     is_published = models.BooleanField(default=False, verbose_name="تم اعتماد ونشر النقاط")
@@ -151,7 +154,29 @@ class Gameweek(models.Model):
     class Meta:
         unique_together = ('league', 'number')
 
+    def set_fixed_schedule(self):
+        """تحديد موعد الإغلاق يوم السبت الساعة 16:00 والفتح يوم الخميس الساعة 16:00"""
+        from datetime import timedelta
+        from django.utils import timezone
+
+        base_date = timezone.now()
+        # حساب السبت القادم (5 = Saturday)
+        days_until_saturday = (5 - base_date.weekday()) % 7
+        saturday_deadline = (base_date + timedelta(days=days_until_saturday)).replace(
+            hour=16, minute=0, second=0, microsecond=0
+        )
+        # الخميس قبل السبت بيومين
+        thursday_start = saturday_deadline - timedelta(days=2)
+
+        if not self.deadline:
+            self.deadline = saturday_deadline
+        if not self.start_date:
+            self.start_date = thursday_start
+
     def save(self, *args, **kwargs):
+        if not self.deadline or not self.start_date:
+            self.set_fixed_schedule()
+
         is_newly_finished = False
         if self.pk:
             old_instance = Gameweek.objects.filter(pk=self.pk).first()
@@ -173,7 +198,7 @@ class Gameweek(models.Model):
 
     def __str__(self):
         return f"الجولة {self.number} - {self.league.name}"
-
+    
 
 # 6. إحصائيات اللاعب في الجولة
 class PlayerGameweekStat(models.Model):

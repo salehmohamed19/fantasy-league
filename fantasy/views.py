@@ -223,10 +223,18 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
     for player in available_players:
         attach_status_info(player)
 
+    # حساب العداد التنازلي لموعد إغلاق التعديل المباشر
+    deadline = getattr(current_gameweek, 'deadline', None)
+    time_remaining = None
+    if deadline and deadline > timezone.now():
+        time_remaining = deadline - timezone.now()
+
     return {
         'user_team': user_team,
         'current_league': active_league,
         'gameweek': current_gameweek,
+        'deadline': deadline,
+        'time_remaining': time_remaining,
         'squad': squad,
         'starters': starters_list,
         'subs': subs_list,
@@ -1273,11 +1281,13 @@ def compare_players(request):
 
 
 def news_and_awards(request):
-    """عرض الأخبار والغيابات والجوائز وأبطال كافة الجولات تلقائياً مع دعم الجوائز اليدوية"""
+    """عرض الأخبار والغيابات والجوائز وأبطال كافة الجولات تلقائياً مع دعم الجوائز اليدوية والعداد التنازلي"""
     now = timezone.now()
     
-    # 1. العداد التنازلي للجولة القادمة
+    # 1. العداد التنازلي والـ Deadline للجولة القادمة
     next_gameweek = Gameweek.objects.filter(is_finished=False).order_by('number').first()
+    deadline = getattr(next_gameweek, 'deadline', None) if next_gameweek else None
+    time_remaining = (deadline - now) if deadline and deadline > now else None
     
     # 2. المصابون والموقوفون والغيابات (من الموديل الرئيسي وحالات التحديث إن وجدت)
     injured_players = Player.objects.filter(is_injured=True).select_related('team')
@@ -1338,6 +1348,8 @@ def news_and_awards(request):
 
     context = {
         'next_gameweek': next_gameweek,
+        'deadline': deadline,
+        'time_remaining': time_remaining,
         'injured_players': injured_players,
         'suspended_players': suspended_players,
         'injuries_and_news': injuries_and_news,

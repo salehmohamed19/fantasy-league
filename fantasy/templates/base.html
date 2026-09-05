@@ -154,6 +154,74 @@
         </div>
     </header>
 
+    <!-- شريط العداد التنازلي الشامل (Global Countdown Timer) -->
+    {% if next_gameweek and timer_target %}
+    <div class="bg-gradient-to-r from-purple-900 via-plDark to-purple-950 border-b border-plGreen/30 p-2.5 text-white shadow-lg">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-right px-3">
+            
+            <!-- نص حالة الجولة -->
+            <div class="flex items-center gap-2">
+                {% if timer_mode == 'WAITING_FOR_OPEN' %}
+                    <span class="animate-pulse text-yellow-400 font-bold text-base">⏳</span>
+                    <span class="text-xs sm:text-sm font-bold">
+                        باقي <span class="text-yellow-400">على بداية الجولة</span> <span class="text-plGreen font-extrabold">{{ next_gameweek.number }}</span>:
+                    </span>
+                {% else %}
+                    <span class="animate-pulse text-red-500 font-bold text-base">🔴</span>
+                    <span class="text-xs sm:text-sm font-bold">
+                        باقي <span class="text-red-400">على نهاية الجولة</span> <span class="text-plGreen font-extrabold">{{ next_gameweek.number }}</span> (إغلاق التشكيل):
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- العداد التنازلي -->
+            <div id="global-squad-timer" class="flex items-center gap-2.5 dir-ltr font-mono font-bold text-sm sm:text-base text-yellow-400">
+                <div class="flex items-center gap-1"><span id="g-cd-days">00</span><span class="text-[10px] text-gray-400 font-sans">يوم</span></div>:
+                <div class="flex items-center gap-1"><span id="g-cd-hours">00</span><span class="text-[10px] text-gray-400 font-sans">ساعة</span></div>:
+                <div class="flex items-center gap-1"><span id="g-cd-minutes">00</span><span class="text-[10px] text-gray-400 font-sans">دقيقة</span></div>:
+                <div class="flex items-center gap-1"><span id="g-cd-seconds">00</span><span class="text-[10px] text-gray-400 font-sans">ثانية</span></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const targetDateStr = "{{ timer_target|date:'c' }}"; 
+        const targetDate = new Date(targetDateStr).getTime();
+
+        const timer = setInterval(function() {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance <= 0) {
+                clearInterval(timer);
+                window.location.reload();
+                return;
+            }
+
+            const d = String(Math.floor(distance / (1000 * 60 * 60 * 24))).padStart(2, '0');
+            const h = String(Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+            const m = String(Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+            const s = String(Math.floor((distance % (1000 * 60)) / 1000)).padStart(2, '0');
+
+            const elDays = document.getElementById("g-cd-days");
+            if (elDays) {
+                elDays.innerText = d;
+                document.getElementById("g-cd-hours").innerText = h;
+                document.getElementById("g-cd-minutes").innerText = m;
+                document.getElementById("g-cd-seconds").innerText = s;
+            }
+        }, 1000);
+    })();
+    </script>
+
+    {% elif timer_mode == 'LOCKED' %}
+    <div class="bg-red-950/80 border-b border-red-500/30 p-2.5 text-center text-red-300 font-bold text-xs sm:text-sm shadow-lg">
+        🔒 المباريات قيد التنفيذ - التشكيلات مغلقة حالياً.
+    </div>
+    {% endif %}
+
     <!-- Main Content Container -->
     <main id="main-content" class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6">
         {% block content %}
