@@ -110,6 +110,13 @@
                             <span>الملف الشخصي</span>
                         </a>
 
+                        <!-- خيار مقارنة اللاعبين الجديد -->
+                        <a href="{% url 'compare_players' %}" 
+                           class="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-plGreen/10 hover:text-plGreen transition">
+                            <span>⚖️</span>
+                            <span>مقارنة اللاعبين</span>
+                        </a>
+
                         <!-- خيار لوحة إدخال الإحصائيات داخل القائمة المنسدلة للأدمن -->
                         {% if user.is_staff %}
                         <a href="{% url 'enter_match_stats' %}" 
