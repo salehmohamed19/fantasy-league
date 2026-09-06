@@ -17,6 +17,10 @@ class League(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = "بطولة / دوري"
+        verbose_name_plural = "البطولات والدوريات"
+
 
 # 2. الفرق الحقيقية
 class RealTeam(models.Model):
@@ -26,6 +30,10 @@ class RealTeam(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.league.name})"
+
+    class Meta:
+        verbose_name = "فريق حقيقي"
+        verbose_name_plural = "الفرق الحقيقية"
 
 
 # 3. جدول المباريات
@@ -138,12 +146,17 @@ class Player(models.Model):
     def __str__(self):
         return f"{self.name} ({self.get_position_display()}) - {self.team.name}"
 
+    class Meta:
+        verbose_name = "لاعب"
+        verbose_name_plural = "اللاعبون"
+
+
 # 5. الجولات
 class Gameweek(models.Model):
     league = models.ForeignKey(League, on_delete=models.CASCADE, verbose_name="الدوري")
     number = models.PositiveIntegerField(verbose_name="رقم الجولة")
     
-    # حقول المواعيد الجديدة
+    # حقول المواعيد
     start_date = models.DateTimeField(null=True, blank=True, verbose_name="موعد فتح التشكيلة (الخميس 16:00)")
     deadline = models.DateTimeField(null=True, blank=True, verbose_name="موعد إغلاق التشكيلة (السبت 16:00)")
     
@@ -153,6 +166,8 @@ class Gameweek(models.Model):
 
     class Meta:
         unique_together = ('league', 'number')
+        verbose_name = "جولة"
+        verbose_name_plural = "الجولات"
 
     def set_fixed_schedule(self):
         """تحديد موعد الإغلاق يوم السبت الساعة 16:00 والفتح يوم الخميس الساعة 16:00"""
@@ -160,12 +175,10 @@ class Gameweek(models.Model):
         from django.utils import timezone
 
         base_date = timezone.now()
-        # حساب السبت القادم (5 = Saturday)
         days_until_saturday = (5 - base_date.weekday()) % 7
         saturday_deadline = (base_date + timedelta(days=days_until_saturday)).replace(
             hour=16, minute=0, second=0, microsecond=0
         )
-        # الخميس قبل السبت بيومين
         thursday_start = saturday_deadline - timedelta(days=2)
 
         if not self.deadline:
@@ -198,7 +211,7 @@ class Gameweek(models.Model):
 
     def __str__(self):
         return f"الجولة {self.number} - {self.league.name}"
-    
+
 
 # 6. إحصائيات اللاعب في الجولة
 class PlayerGameweekStat(models.Model):
@@ -233,6 +246,8 @@ class PlayerGameweekStat(models.Model):
 
     class Meta:
         unique_together = ('player', 'gameweek')
+        verbose_name = "إحصائية لاعب لجولة"
+        verbose_name_plural = "إحصائيات اللاعبين للجولات"
 
     def save(self, *args, **kwargs):
         if not self.team_id or self.team != self.player.team:
@@ -322,6 +337,8 @@ class UserFantasyTeam(models.Model):
 
     class Meta:
         unique_together = ('user', 'league')
+        verbose_name = "فريق فانتسي للمستخدم"
+        verbose_name_plural = "فرق المستخدمين"
 
     def __str__(self):
         return f"{self.name} ({self.user.username}) - {self.league.name}"
@@ -340,7 +357,7 @@ class UserSquad(models.Model):
     user_team = models.ForeignKey(UserFantasyTeam, on_delete=models.CASCADE, related_name='squads', verbose_name="فريق المستخدم")
     gameweek = models.ForeignKey(Gameweek, on_delete=models.CASCADE, verbose_name="الجولة")
     starting_players = models.ManyToManyField(Player, related_name='starters', verbose_name="الأساسيين (6)")
-    substitutes = models.ManyToManyField(Player, related_name='subs', blank=True, verbose_name="الاحتياط (4)")
+    substitutes = models.ManyToManyField(Player, related_name='subs', blank=True, verbose_name="الاحتياط (2)")
     
     captain = models.ForeignKey(
         Player, 
@@ -367,11 +384,20 @@ class UserSquad(models.Model):
 
     class Meta:
         unique_together = ('user_team', 'gameweek')
+        verbose_name = "تشكيلة جولة للمستخدم"
+        verbose_name_plural = "تشكيلات الجولات للمستخدمين"
 
     def clean(self):
         super().clean()
         if self.captain and self.vice_captain and self.captain == self.vice_captain:
             raise ValidationError("لا يمكن اختيار نفس اللاعب ككابتن ونائب كابتن في نفس الوقت.")
+        
+        # التحقق من أن الاحتياط لا يتجاوز 2 لاعبين عند الحفظ
+        if self.pk:
+            if self.starting_players.count() > 6:
+                raise ValidationError("لا يمكن إضافة أكثر من 6 لاعبين في التشكيلة الأساسية.")
+            if self.substitutes.count() > 2:
+                raise ValidationError("دكة الاحتياطي لا تتسع لأكثر من لاعبين اثنين (2) فقط.")
 
     def __str__(self):
         return f"تشكيلة {self.user_team.name} - {self.gameweek}"
@@ -394,7 +420,7 @@ class NewsAndUpdate(models.Model):
         return self.title
 
 
-# 10. تحديثات إصابات وغيابات اللاعبين (مضاف جديد لمركز الإصابات)
+# 10. تحديثات إصابات وغيابات اللاعبين
 class PlayerStatusUpdate(models.Model):
     PLAY_CHANCE_CHOICES = [
         (0, 'مستبعد / مصاب (0%)'),
@@ -465,6 +491,10 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"Profile of {self.user.username}"
+
+    class Meta:
+        verbose_name = "ملف شخصي"
+        verbose_name_plural = "الملفات الشخصية"
 
 
 # ==========================================

@@ -228,6 +228,90 @@
         </div>
         {% endif %}
 
+        <!-- ⚡ قسم الخواص التكتيكية (Chips) الجديد -->
+        {% if user_team and squad %}
+        <div class="w-full bg-[#240028] p-3 sm:p-4 my-2 border-x-2 border-purple-800 shadow-xl">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs sm:text-sm font-black text-plGreen flex items-center gap-2">
+                    <span>⚡</span> الخواص التكتيكية (Chips)
+                </h3>
+                {% if squad.active_chip and squad.active_chip != 'NONE' %}
+                    <span class="text-[11px] bg-plGreen/20 text-plGreen px-2.5 py-0.5 rounded-full font-bold border border-plGreen/30 animate-pulse">
+                        مفعل حالياً: {{ squad.get_active_chip_display }}
+                    </span>
+                {% endif %}
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-bold">
+                
+                <!-- Triple Captain -->
+                <a href="{% url 'activate_chip' user_team.id 'TC' %}" 
+                   class="p-2.5 rounded-xl border transition flex flex-col items-center justify-center gap-1 
+                   {% if squad.active_chip == 'TC' %}
+                       bg-plGreen text-plDark border-plGreen shadow-lg shadow-plGreen/20 font-black
+                   {% elif user_team.triple_captain_used %}
+                       bg-gray-900/60 text-gray-500 border-gray-800 opacity-60 pointer-events-none
+                   {% else %}
+                       bg-plDark text-gray-200 border-gray-700 hover:border-plGreen hover:text-plGreen
+                   {% endif %}">
+                    <span>🚀 Triple Captain</span>
+                    {% if user_team.triple_captain_used %}
+                        <span class="text-[9px] text-red-400 font-normal">(تم الاستخدام)</span>
+                    {% endif %}
+                </a>
+
+                <!-- Bench Boost -->
+                <a href="{% url 'activate_chip' user_team.id 'BB' %}" 
+                   class="p-2.5 rounded-xl border transition flex flex-col items-center justify-center gap-1
+                   {% if squad.active_chip == 'BB' %}
+                       bg-plGreen text-plDark border-plGreen shadow-lg shadow-plGreen/20 font-black
+                   {% elif user_team.bench_boost_used %}
+                       bg-gray-900/60 text-gray-500 border-gray-800 opacity-60 pointer-events-none
+                   {% else %}
+                       bg-plDark text-gray-200 border-gray-700 hover:border-plGreen hover:text-plGreen
+                   {% endif %}">
+                    <span>🪑 Bench Boost</span>
+                    {% if user_team.bench_boost_used %}
+                        <span class="text-[9px] text-red-400 font-normal">(تم الاستخدام)</span>
+                    {% endif %}
+                </a>
+
+                <!-- Wildcard -->
+                <a href="{% url 'activate_chip' user_team.id 'WC' %}" 
+                   class="p-2.5 rounded-xl border transition flex flex-col items-center justify-center gap-1
+                   {% if squad.active_chip == 'WC' %}
+                       bg-plGreen text-plDark border-plGreen shadow-lg shadow-plGreen/20 font-black
+                   {% elif user_team.wildcard_used %}
+                       bg-gray-900/60 text-gray-500 border-gray-800 opacity-60 pointer-events-none
+                   {% else %}
+                       bg-plDark text-gray-200 border-gray-700 hover:border-plGreen hover:text-plGreen
+                   {% endif %}">
+                    <span>🃏 Wildcard</span>
+                    {% if user_team.wildcard_used %}
+                        <span class="text-[9px] text-red-400 font-normal">(تم الاستخدام)</span>
+                    {% endif %}
+                </a>
+
+                <!-- Free Hit -->
+                <a href="{% url 'activate_chip' user_team.id 'FH' %}" 
+                   class="p-2.5 rounded-xl border transition flex flex-col items-center justify-center gap-1
+                   {% if squad.active_chip == 'FH' %}
+                       bg-plGreen text-plDark border-plGreen shadow-lg shadow-plGreen/20 font-black
+                   {% elif user_team.free_hit_used %}
+                       bg-gray-900/60 text-gray-500 border-gray-800 opacity-60 pointer-events-none
+                   {% else %}
+                       bg-plDark text-gray-200 border-gray-700 hover:border-plGreen hover:text-plGreen
+                   {% endif %}">
+                    <span>🔥 Free Hit</span>
+                    {% if user_team.free_hit_used %}
+                        <span class="text-[9px] text-red-400 font-normal">(تم الاستخدام)</span>
+                    {% endif %}
+                </a>
+
+            </div>
+        </div>
+        {% endif %}
+
         <!-- الملعب الأخضر -->
         <div class="w-full bg-gradient-to-b from-emerald-800 via-green-700 to-emerald-800 rounded-b-xl p-2 sm:p-6 border-2 border-emerald-600 shadow-2xl relative min-h-[520px] sm:min-h-[580px] flex flex-col justify-between items-center overflow-hidden">
             <div class="absolute inset-0 border-2 border-white/20 m-2 rounded-lg pointer-events-none"></div>
@@ -650,37 +734,6 @@
             </div>
         </div>
 
-        <!-- ⚽ المباريات القادمة (GRID CARDS) 
-        <div class="w-full bg-[#240028] mt-4 p-4 rounded-xl border border-purple-900/40 shadow-lg">
-            <h3 class="text-xs font-black text-gray-200 mb-3 text-right uppercase tracking-wider border-b border-purple-900/30 pb-2">
-                ⚽ المباريات القادمة
-            </h3>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {% for fixture in upcoming_fixtures %}
-                <div class="bg-purple-950/50 border-r-4 border-plGreen rounded-xl p-3 flex justify-between items-center text-white border border-purple-900/30 shadow-md">
-                    <div class="flex flex-col gap-1">
-                        <div class="flex items-center gap-2 font-bold text-xs sm:text-sm">
-                            <span>{{ fixture.home_team.name }}</span>
-                            <span class="text-gray-400 text-[10px]">ضد</span>
-                            <span>{{ fixture.away_team.name }}</span>
-                        </div>
-                        <span class="text-[10px] text-purple-300 font-medium">
-                            🗓️ {{ fixture.kickoff_time|date:"d M Y - h:i A"|default:fixture.kickoff_time }}
-                        </span>
-                    </div>
-                    <span class="bg-purple-900/80 text-purple-200 text-[10px] font-bold px-2.5 py-1 rounded-full border border-purple-700/50 whitespace-nowrap">
-                        الجولة {{ fixture.gameweek.number }}
-                    </span>
-                </div>
-                {% empty %}
-                <div class="col-span-full text-center py-4 bg-purple-950/30 rounded-lg text-xs text-purple-300 border border-dashed border-purple-800/40">
-                    لا توجد مباريات قادمة مبرمجة حالياً.
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        -->
     </div>
 
     <!-- الجانب الأيسر: سوق اللاعبين -->

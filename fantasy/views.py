@@ -1360,3 +1360,111 @@ def news_and_awards(request):
         'prizes': prizes,
     }
     return render(request, 'fantasy/news_and_awards.html', context)
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import UserFantasyTeam, UserSquad, Gameweek, PlayerGameweekStat
+
+@login_required
+def activate_chip(request, team_id, chip_code):
+    """
+    دالة تفعيل الخاصية التكتيكية (Triple Captain, Bench Boost, Wildcard, Free Hit)
+    """
+    user_team = get_object_or_404(UserFantasyTeam, id=team_id, user=request.user)
+    
+    # 1. البحث عن الجولة الحالية المفعلة (التي لم تنتهِ بعد)
+    current_gw = Gameweek.objects.filter(
+        league=user_team.league, 
+        is_finished=False
+    ).order_by('number').first()
+
+    if not current_gw or not current_gw.is_open:
+        messages.error(request, "عذراً، التغييرات والخواص مغلقة حالياً لهذه الجولة.")
+        return redirect('squad_builder')
+
+    # 2. الحصول على تشكيلة المستخدم للجولة الحالية أو إنشائها
+    squad, created = UserSquad.objects.get_or_create(
+        user_team=user_team,
+        gameweek=current_gw
+    )
+
+    # 3. جدول التحقق من الاستخدام المسبق استناداً لأسماء الحقول في UserFantasyTeam
+    chip_verify_map = {
+        'TC': (user_team.triple_captain_used, 'Triple Captain (x3)'),
+        'BB': (user_team.bench_boost_used, 'Bench Boost'),
+        'WC': (user_team.wildcard_used, 'Wildcard'),
+        'FH': (user_team.free_hit_used, 'Free Hit'),
+    }
+
+    if chip_code not in chip_verify_map:
+        messages.error(request, "خاصية غير صالحة.")
+        return redirect('squad_builder')
+
+    is_used, chip_name = chip_verify_map[chip_code]
+
+    # التحقق مما إذا كانت الكارت مستخدمة سابقاً في الموسم
+    if is_used:
+        messages.error(request, f"لقد قمت باستخدام خاصية {chip_name} بالفعل هذا الموسم!")
+        return redirect('squad_builder')
+
+    # إلغاء الخاصية إذا ضغط عليها المستخدم مرة أخرى وهي مفعالة بالفعل
+    if squad.active_chip == chip_code:
+        squad.active_chip = 'NONE'
+        squad.save()
+        messages.info(request, f"تم إلغاء تفعيل خاصية {chip_name}.")
+    else:
+        squad.active_chip = chip_code
+        squad.save()
+        messages.success(request, f"تم تفعيل خاصية {chip_name} بنجاح للجولة {current_gw.number}! 🚀")
+
+    return redirect('squad_builder')
+
+
+def calculate_squad_gameweek_points(user_squad):
+    """
+    دالة حساب نقاط التشكيلة وتطبيق الخواص النشطة بناءً على موديل UserSquad و UserFantasyTeam
+    """
+    active_chip = user_squad.active_chip
+    total_points = 0
+
+    # 1. حساب نقاط اللاعبين الأساسيين
+    for player in user_squad.starting_players.all():
+        stat = PlayerGameweekStat.objects.filter(player=player, gameweek=user_squad.gameweek).first()
+        player_pts = stat.points if stat else 0
+
+        # تطبيق خاصية Triple Captain
+        if user_squad.captain and player.id == user_squad.captain.id:
+            multiplier = 3 if active_chip == 'TC' else 2
+            total_points += (player_pts * multiplier)
+        else:
+            total_points += player_pts
+
+    # 2. حساب نقاط الدكة في حالة تفعيل Bench Boost (BB)
+    if active_chip == 'BB':
+        for sub_player in user_squad.substitutes.all():
+            stat = PlayerGameweekStat.objects.filter(player=sub_player, gameweek=user_squad.gameweek).first()
+            total_points += (stat.points if stat else 0)
+
+    # 3. تطبيق خصم النقاط للتغيرات الزائدة (سفر في حالة Wildcard أو Free Hit)
+    if active_chip not in ['WC', 'FH']:
+        total_points -= user_squad.transfers_cost
+
+    # 4. حفظ وتثبيت النقاط في الموديل
+    user_squad.points_earned = total_points
+    user_squad.save()
+
+    # 5. استهلاك الخاصية دائماً في موديل UserFantasyTeam بعد اعتماد الجولة
+    user_team = user_squad.user_team
+    if active_chip == 'TC':
+        user_team.triple_captain_used = True
+    elif active_chip == 'BB':
+        user_team.bench_boost_used = True
+    elif active_chip == 'WC':
+        user_team.wildcard_used = True
+    elif active_chip == 'FH':
+        user_team.free_hit_used = True
+
+    user_team.save()
+
+    return total_points

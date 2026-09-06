@@ -34,6 +34,7 @@ urlpatterns = [
     path('player/<int:player_id>/modal/', views.player_detail_modal, name='player_detail_modal'),
     path('compare/', views.compare_players, name='compare_players'),
     path('news/', views.news_and_awards, name='news_and_awards'),
+    path('team/<int:team_id>/activate-chip/<str:chip_code>/', views.activate_chip, name='activate_chip'),
     
     # المصادقة والحسابات
     path('login/', LoginView.as_view(template_name='fantasy/login.html', redirect_authenticated_user=True), name='login'),

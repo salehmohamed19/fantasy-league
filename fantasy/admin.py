@@ -3,12 +3,19 @@ from django.contrib import messages
 from .models import (
     League, 
     RealTeam, 
+    Match,
     Player, 
     Gameweek, 
     PlayerGameweekStat, 
     UserFantasyTeam, 
-    UserSquad
+    UserSquad,
+    NewsAndUpdate,
+    PlayerStatusUpdate,
+    LeaguePrize,
+    Award,
+    UserProfile
 )
+
 
 # 🟢 Action لإنشاء سجلات إحصائيات جميع اللاعبين تلقائياً للجولة المحددة
 @admin.action(description='⚡ إنشاء سجلات إحصائيات جميع اللاعبين لهذه الجولة تلقائياً')
@@ -126,6 +133,15 @@ class RealTeamAdmin(admin.ModelAdmin):
     inlines = [PlayerGameweekStatInlineForTeam]
 
 
+@admin.register(Match)
+class MatchAdmin(admin.ModelAdmin):
+    list_display = ('home_team', 'away_team', 'gameweek', 'match_date', 'home_score', 'away_score', 'is_finished', 'league')
+    list_filter = ('league', 'gameweek', 'is_finished', 'match_date')
+    search_fields = ('home_team__name', 'away_team__name')
+    list_editable = ('home_score', 'away_score', 'is_finished')
+    ordering = ('-match_date',)
+
+
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
     list_display = (
@@ -142,7 +158,7 @@ class PlayerAdmin(admin.ModelAdmin):
     search_fields = ('name', 'team__name')
     list_editable = ('price', 'has_yellow_card', 'has_red_card')
     raw_id_fields = ('team',)
-    inlines = [PlayerGameweekStatInlineForPlayer]  # 🟢 إضافة Inline الجولات داخل صفحة اللاعب
+    inlines = [PlayerGameweekStatInlineForPlayer]
 
     fieldsets = (
         ('بيانات اللاعب الأساسية', {
@@ -165,7 +181,7 @@ class PlayerAdmin(admin.ModelAdmin):
 
 @admin.register(Gameweek)
 class GameweekAdmin(admin.ModelAdmin):
-    list_display = ('number', 'league', 'is_open', 'is_finished', 'is_published')
+    list_display = ('number', 'league', 'start_date', 'deadline', 'is_open', 'is_finished', 'is_published')
     list_filter = ('league', 'is_open', 'is_finished', 'is_published')
     actions = [generate_gameweek_stats, calculate_gameweek_points]
 
@@ -202,7 +218,7 @@ class PlayerGameweekStatAdmin(admin.ModelAdmin):
             'fields': (
                 ('yellow_card', 'red_card'),
                 ('goals', 'assists'),
-                ('penalties_taken', 'penalties_missed'),
+                ('penalties_saved', 'penalties_missed', 'own_goals'),
                 'clean_sheet'
             ),
         }),
@@ -233,10 +249,41 @@ class UserSquadAdmin(admin.ModelAdmin):
     raw_id_fields = ('user_team', 'captain', 'vice_captain')
     filter_horizontal = ('starting_players', 'substitutes')
 
-from django.contrib import admin
-from .models import Award
+
+@admin.register(NewsAndUpdate)
+class NewsAndUpdateAdmin(admin.ModelAdmin):
+    list_display = ('title', 'league', 'is_pinned', 'created_at')
+    list_filter = ('league', 'is_pinned', 'created_at')
+    search_fields = ('title', 'content')
+    list_editable = ('is_pinned',)
+    ordering = ('-created_at',)
+
+
+@admin.register(PlayerStatusUpdate)
+class PlayerStatusUpdateAdmin(admin.ModelAdmin):
+    list_display = ('player', 'chance_of_playing', 'status_reason', 'is_active', 'updated_at')
+    list_filter = ('chance_of_playing', 'is_active')
+    search_fields = ('player__name', 'status_reason', 'news_text')
+    list_editable = ('chance_of_playing', 'is_active')
+
+
+@admin.register(LeaguePrize)
+class LeaguePrizeAdmin(admin.ModelAdmin):
+    list_display = ('icon_emoji', 'title', 'prize_type', 'order')
+    list_filter = ('prize_type',)
+    search_fields = ('title', 'description')
+    list_editable = ('order',)
+    ordering = ('order',)
+
 
 @admin.register(Award)
 class AwardAdmin(admin.ModelAdmin):
-    list_display = ('title', 'winner', 'date_awarded')
-    search_fields = ('title', 'winner__username')    
+    list_display = ('icon', 'title', 'winner', 'date_awarded')
+    search_fields = ('title', 'winner__username')
+    ordering = ('-date_awarded',)
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'avatar')
+    search_fields = ('user__username',)
