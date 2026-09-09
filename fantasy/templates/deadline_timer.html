@@ -1,5 +1,6 @@
 {% if timer_target %}
-<div class="bg-gradient-to-r from-purple-900 via-plDark to-purple-950 border-b border-plGreen/30 p-2.5 text-white shadow-lg">
+<!-- تمت إضافة الثبات الزمني وقيمة top لتظهر أسفل Navbar فوراً -->
+<div class="sticky top-[60px] sm:top-[68px] z-40 bg-gradient-to-r from-purple-900 via-plDark to-purple-950 border-b border-plGreen/30 p-2.5 text-white shadow-lg">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-right px-3">
         
         <!-- نص حالة الجولة -->
@@ -62,7 +63,7 @@ document.addEventListener("DOMContentLoaded", function() {
 </script>
 
 {% else %}
-<div class="bg-purple-950/90 border-b border-purple-700/50 p-2 text-center text-gray-300 font-bold text-xs shadow-md">
+<div class="sticky top-[60px] sm:top-[68px] z-40 bg-purple-950/90 border-b border-purple-700/50 p-2 text-center text-gray-300 font-bold text-xs shadow-md">
     🔒 التشكيلات مغلقة حالياً - المباريات قيد التنفيذ أو جاري إعداد الجولة القادمة.
 </div>
 {% endif %}
