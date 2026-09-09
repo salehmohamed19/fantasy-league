@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib import messages
 from .models import (
     League, 
+    LeagueSponsor,
     RealTeam, 
     Match,
     Player, 
@@ -93,7 +94,7 @@ class PlayerGameweekStatInlineForPlayer(admin.TabularInline):
     def save_formset(self, request, form, formset, change):
         instances = formset.save(commit=False)
         for instance in instances:
-            instance.save()  # استدعاء دالة save المخصصة بالموديل لحساب الكروت والنقاط
+            instance.save()
         formset.save_m2m()
 
 
@@ -119,10 +120,25 @@ class PlayerGameweekStatInlineForTeam(admin.TabularInline):
         formset.save_m2m()
 
 
+# 3️⃣ Inline لإدارة رعاة البطولة داخل صفحة البطولة
+class LeagueSponsorInline(admin.TabularInline):
+    model = LeagueSponsor
+    extra = 1
+    fields = ('name', 'logo', 'website_url', 'order')
+
+
 @admin.register(League)
 class LeagueAdmin(admin.ModelAdmin):
     list_display = ('name', 'code', 'is_public', 'is_active')
     search_fields = ('name', 'code')
+    inlines = [LeagueSponsorInline]
+
+
+@admin.register(LeagueSponsor)
+class LeagueSponsorAdmin(admin.ModelAdmin):
+    list_display = ('name', 'league', 'order')
+    list_filter = ('league',)
+    search_fields = ('name',)
 
 
 @admin.register(RealTeam)

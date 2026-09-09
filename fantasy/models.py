@@ -21,7 +21,22 @@ class League(models.Model):
         verbose_name = "بطولة / دوري"
         verbose_name_plural = "البطولات والدوريات"
 
+# 1.1 رعاة البطولة
+class LeagueSponsor(models.Model):
+    league = models.ForeignKey(League, on_delete=models.CASCADE, related_name='sponsors', verbose_name="البطولة")
+    name = models.CharField(max_length=100, verbose_name="اسم الراعي")
+    logo = CloudinaryField('شعار الراعي', folder='sponsor_logos', null=True, blank=True)
+    website_url = models.URLField(blank=True, null=True, verbose_name="رابط موقع الراعي / صفحة الفيسبوك")
+    order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
 
+    class Meta:
+        ordering = ['order', 'id']
+        verbose_name = "راعي بطولة"
+        verbose_name_plural = "رعاة البطولات"
+
+    def __str__(self):
+        return f"{self.name} - ({self.league.name})"
+    
 # 2. الفرق الحقيقية
 class RealTeam(models.Model):
     league = models.ForeignKey(League, on_delete=models.CASCADE, related_name='teams', verbose_name="الدوري")

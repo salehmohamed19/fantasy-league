@@ -9,7 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- HTMX CDN -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <!-- Alpine.js CDN (لإدارة القائمة المنسدلة) -->
+    <!-- Alpine.js CDN (لإدارة القوائم المنسدلة والتنبيهات) -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     <script>
@@ -117,14 +117,14 @@
                             <span>مقارنة اللاعبين</span>
                         </a>
 
-                        <!-- خيار الأخبار والجوائز الجديد -->
+                        <!-- خيار الأخبار والجوائز -->
                         <a href="{% url 'news_and_awards' %}" 
                            class="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-plGreen/10 hover:text-plGreen transition">
                             <span>🏆</span>
                             <span>الأخبار والجوائز</span>
                         </a>
 
-                        <!-- خيار لوحة إدخال الإحصائيات داخل القائمة المنسدلة للأدمن -->
+                        <!-- خيار لوحة إدخال الإحصائيات للأدمن -->
                         {% if user.is_staff %}
                         <a href="{% url 'enter_match_stats' %}" 
                            class="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-plPink hover:bg-plPink/10 transition">
@@ -153,6 +153,35 @@
 
         </div>
     </header>
+
+    <!-- شريط الرعاة الديناميكي للبطولة الحالية (Sponsors Banner) -->
+    {% if current_league and current_league.sponsors.exists %}
+    <section class="bg-[#1a001d] border-b border-purple-900/50 py-2 px-4 shadow-inner" x-data="{ showSponsors: true }" x-show="showSponsors">
+        <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3 overflow-x-auto no-scrollbar py-1 w-full">
+                <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
+                    <span>⭐</span> رعاة البطولة:
+                </span>
+                
+                <div class="flex items-center gap-4 sm:gap-6">
+                    {% for sponsor in current_league.sponsors.all %}
+                    <a {% if sponsor.website_url %}href="{{ sponsor.website_url }}" target="_blank"{% else %}href="#" onclick="return false;"{% endif %} 
+                       class="flex items-center gap-2 group transition transform hover:scale-105 flex-shrink-0" title="{{ sponsor.name }}">
+                        {% if sponsor.logo %}
+                            <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="h-6 sm:h-7 object-contain rounded">
+                        {% endif %}
+                        <span class="text-xs font-bold text-gray-300 group-hover:text-plGreen transition whitespace-nowrap">{{ sponsor.name }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <button @click="showSponsors = false" class="text-gray-500 hover:text-gray-300 text-xs px-1 focus:outline-none flex-shrink-0" title="إخفاء الشريط">
+                ✕
+            </button>
+        </div>
+    </section>
+    {% endif %}
 
     <!-- استدعاء شريط العداد التنازلي الشامل مباشرة من مجلد templates -->
     {% include "deadline_timer.html" %}

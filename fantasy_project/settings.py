@@ -54,6 +54,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'fantasy.context_processors.global_timer_context',
+                'fantasy.context_processors.current_league_sponsors',
             ],
         },
     },

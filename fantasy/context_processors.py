@@ -1,6 +1,6 @@
 from django.utils import timezone
 from datetime import timedelta
-from .models import Gameweek
+from .models import Gameweek, League, UserFantasyTeam
 
 def global_timer_context(request):
     now = timezone.now()
@@ -32,4 +32,34 @@ def global_timer_context(request):
         'next_gameweek': next_gameweek,
         'timer_target': timer_target,
         'timer_mode': timer_mode,
+    }
+
+
+def current_league_sponsors(request):
+    """
+    جلب رعاة البطولة الحالية التي يتصفحها المستخدم ديناميكياً
+    """
+    league = None
+    
+    if request.user.is_authenticated:
+        # 1. البحث عن league_id من الـ GET parameter إذا اختار المستخدم بطولة معينة من الـ Dropdown
+        league_id = request.GET.get('league_id')
+        if league_id:
+            league = League.objects.filter(id=league_id, is_active=True).first()
+            
+        # 2. إذا لم تُحدد في الـ GET، يتم اختيار أول بطولة ينتمي إليها فريق المستخدم
+        if not league:
+            user_team = UserFantasyTeam.objects.filter(user=request.user).first()
+            if user_team:
+                league = user_team.league
+
+    # 3. إذا لم توجد بطولة محددة، اجلب أول بطولة نشطة افتراضياً
+    if not league:
+        league = League.objects.filter(is_active=True).first()
+
+    sponsors = league.sponsors.all() if league else []
+    
+    return {
+        'current_sponsors': sponsors,
+        'sponsors_league_name': league.name if league else ''
     }
