@@ -162,7 +162,9 @@
     {% if current_league and current_league.sponsors.exists %}
     <section class="bg-[#1a001d] border-b border-purple-900/50 py-2.5 px-4 shadow-inner">
         <div class="max-w-6xl mx-auto flex items-center justify-center">
-            
+            <span class="text-xs font-bold text-plGreen uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 flex-shrink-0">
+                <span>⭐</span> هذه البطولة برعاية :
+            </span>
             <!-- حاوية الشعارات المتقاربة جداً وبأبعاد مناسبة -->
             <div class="flex items-center justify-center gap-3 sm:gap-4 flex-wrap w-full">
                 {% for sponsor in current_league.sponsors.all %}
