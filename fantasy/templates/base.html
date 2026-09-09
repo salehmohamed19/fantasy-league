@@ -154,36 +154,33 @@
         </div>
     </header>
 
-    <!-- شريط الرعاة الديناميكي للبطولة الحالية (Sponsors Banner - الشعارات فقط) -->
+    <!-- استدعاء شريط العداد التنازلي الشامل مباشرة من مجلد templates -->
+    {% include "deadline_timer.html" %}
+
+    <!-- شريط الرعاة الديناميكي أسفل العداد التنازلي (الشعارات فقط بدون إغلاق وبحجم مكبّر) -->
     {% if current_league and current_league.sponsors.exists %}
-    <section class="bg-[#1a001d] border-b border-purple-900/50 py-2 px-4 shadow-inner" x-data="{ showSponsors: true }" x-show="showSponsors">
-        <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
-            <div class="flex items-center gap-4 overflow-x-auto no-scrollbar py-1 w-full">
-                <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
-                    <span>⭐</span> هذه البطولة برعاية :
-                </span>
-                
-                <div class="flex items-center gap-5 sm:gap-8">
-                    {% for sponsor in current_league.sponsors.all %}
-                    <a {% if sponsor.website_url %}href="{{ sponsor.website_url }}" target="_blank"{% else %}href="#" onclick="return false;"{% endif %} 
-                       class="flex items-center transition transform hover:scale-110 flex-shrink-0" title="{{ sponsor.name }}">
-                        {% if sponsor.logo %}
-                            <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="h-7 sm:h-9 object-contain drop-shadow-md">
-                        {% endif %}
-                    </a>
-                    {% endfor %}
-                </div>
+    <section class="bg-[#1a001d] border-b border-purple-900/50 py-3 px-4 shadow-inner">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-3 sm:gap-6">
+            
+            <span class="text-xs font-bold text-plGreen uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 flex-shrink-0">
+                <span>⭐</span> هذه البطولة برعاية :
+            </span>
+            
+            <!-- حاوية الشعارات بدعم الالتفاف flex-wrap لظهورها جميعاً في الشاشات الصغيرة -->
+            <div class="flex items-center justify-center sm:justify-start gap-6 sm:gap-8 flex-wrap w-full">
+                {% for sponsor in current_league.sponsors.all %}
+                <a {% if sponsor.website_url %}href="{{ sponsor.website_url }}" target="_blank"{% else %}href="#" onclick="return false;"{% endif %} 
+                   class="flex items-center transition transform hover:scale-110 p-1" title="{{ sponsor.name }}">
+                    {% if sponsor.logo %}
+                        <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="h-12 sm:h-16 max-w-[160px] object-contain drop-shadow-md">
+                    {% endif %}
+                </a>
+                {% endfor %}
             </div>
 
-            <button @click="showSponsors = false" class="text-gray-500 hover:text-gray-300 text-xs px-1 focus:outline-none flex-shrink-0" title="إخفاء الشريط">
-                ✕
-            </button>
         </div>
     </section>
     {% endif %}
-
-    <!-- استدعاء شريط العداد التنازلي الشامل مباشرة من مجلد templates -->
-    {% include "deadline_timer.html" %}
 
     <!-- Main Content Container -->
     <main id="main-content" class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6">
