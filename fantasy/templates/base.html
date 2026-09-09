@@ -154,23 +154,22 @@
         </div>
     </header>
 
-    <!-- شريط الرعاة الديناميكي للبطولة الحالية (Sponsors Banner) -->
+    <!-- شريط الرعاة الديناميكي للبطولة الحالية (Sponsors Banner - الشعارات فقط) -->
     {% if current_league and current_league.sponsors.exists %}
     <section class="bg-[#1a001d] border-b border-purple-900/50 py-2 px-4 shadow-inner" x-data="{ showSponsors: true }" x-show="showSponsors">
         <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3 overflow-x-auto no-scrollbar py-1 w-full">
+            <div class="flex items-center gap-4 overflow-x-auto no-scrollbar py-1 w-full">
                 <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
-                    <span>⭐</span> رعاة البطولة:
+                    <span>⭐</span> هذه البطولة برعاية :
                 </span>
                 
-                <div class="flex items-center gap-4 sm:gap-6">
+                <div class="flex items-center gap-5 sm:gap-8">
                     {% for sponsor in current_league.sponsors.all %}
                     <a {% if sponsor.website_url %}href="{{ sponsor.website_url }}" target="_blank"{% else %}href="#" onclick="return false;"{% endif %} 
-                       class="flex items-center gap-2 group transition transform hover:scale-105 flex-shrink-0" title="{{ sponsor.name }}">
+                       class="flex items-center transition transform hover:scale-110 flex-shrink-0" title="{{ sponsor.name }}">
                         {% if sponsor.logo %}
-                            <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="h-6 sm:h-7 object-contain rounded">
+                            <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="h-7 sm:h-9 object-contain drop-shadow-md">
                         {% endif %}
-                        <span class="text-xs font-bold text-gray-300 group-hover:text-plGreen transition whitespace-nowrap">{{ sponsor.name }}</span>
                     </a>
                     {% endfor %}
                 </div>
