@@ -157,22 +157,18 @@
     <!-- استدعاء شريط العداد التنازلي الشامل مباشرة من مجلد templates -->
     {% include "deadline_timer.html" %}
 
-    <!-- شريط الرعاة الديناميكي أسفل العداد التنازلي (الشعارات فقط بدون إغلاق وبحجم مكبّر) -->
+    <!-- شريط الرعاة الديناميكي أسفل العداد التنازلي (عرض الشعارات بجانب بعضها بمباشرة) -->
     {% if current_league and current_league.sponsors.exists %}
-    <section class="bg-[#1a001d] border-b border-purple-900/50 py-3 px-4 shadow-inner">
-        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-3 sm:gap-6">
+    <section class="bg-[#1a001d] border-b border-purple-900/50 py-2.5 px-4 shadow-inner">
+        <div class="max-w-6xl mx-auto flex items-center justify-center">
             
-            <span class="text-xs font-bold text-plGreen uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 flex-shrink-0">
-                <span>⭐</span> هذه البطولة برعاية :
-            </span>
-            
-            <!-- حاوية الشعارات بدعم الالتفاف flex-wrap لظهورها جميعاً في الشاشات الصغيرة -->
-            <div class="flex items-center justify-center sm:justify-start gap-6 sm:gap-8 flex-wrap w-full">
+            <!-- حاوية الشعارات المتقاربة جداً وبأبعاد مناسبة -->
+            <div class="flex items-center justify-center gap-3 sm:gap-4 flex-wrap w-full">
                 {% for sponsor in current_league.sponsors.all %}
                 <a {% if sponsor.website_url %}href="{{ sponsor.website_url }}" target="_blank"{% else %}href="#" onclick="return false;"{% endif %} 
-                   class="flex items-center transition transform hover:scale-110 p-1" title="{{ sponsor.name }}">
+                   class="flex items-center transition transform hover:scale-105 p-0.5" title="{{ sponsor.name }}">
                     {% if sponsor.logo %}
-                        <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="h-12 sm:h-16 max-w-[160px] object-contain drop-shadow-md">
+                        <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="h-12 sm:h-16 max-w-[150px] object-contain drop-shadow-md">
                     {% endif %}
                 </a>
                 {% endfor %}
