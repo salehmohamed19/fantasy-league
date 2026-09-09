@@ -158,26 +158,42 @@
     <!-- استدعاء شريط العداد التنازلي الشامل مباشرة من مجلد templates -->
     {% include "deadline_timer.html" %}
 
-    <!-- شريط الرعاة الديناميكي أسفل العداد التنازلي (عرض الشعارات بجانب بعضها بمباشرة) -->
+    <!-- شريط الرعاة الديناميكي أسفل العداد التنازلي مزود بزر الإغلاق -->
     {% if current_league and current_league.sponsors.exists %}
-    <section class="bg-[#1a001d] border-b border-purple-900/50 py-2.5 px-4 shadow-inner">
-        <div class="max-w-6xl mx-auto flex items-center justify-center">
-            <span class="text-xs font-bold text-plGreen uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 flex-shrink-0">
+    <section x-data="{ showSponsors: true }" 
+             x-show="showSponsors" 
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 max-h-24"
+             x-transition:leave-end="opacity-0 max-h-0"
+             class="bg-[#1a001d] border-b border-purple-900/50 py-2.5 px-4 shadow-inner relative">
+        
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 pl-6 sm:pl-0">
+            <!-- العنوان -->
+            <span class="text-[11px] sm:text-xs font-bold text-plGreen uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 flex-shrink-0">
                 <span>⭐</span> هذه البطولة برعاية :
             </span>
-            <!-- حاوية الشعارات المتقاربة جداً وبأبعاد مناسبة -->
-            <div class="flex items-center justify-center gap-3 sm:gap-4 flex-wrap w-full">
+
+            <!-- الشعارات -->
+            <div class="flex items-center justify-center gap-3 sm:gap-5 flex-wrap w-full">
                 {% for sponsor in current_league.sponsors.all %}
                 <a {% if sponsor.website_url %}href="{{ sponsor.website_url }}" target="_blank"{% else %}href="#" onclick="return false;"{% endif %} 
-                   class="flex items-center transition transform hover:scale-105 p-0.5" title="{{ sponsor.name }}">
+                   class="flex items-center justify-center transition transform hover:scale-105 p-1" title="{{ sponsor.name }}">
                     {% if sponsor.logo %}
-                        <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="h-12 sm:h-16 max-w-[150px] object-contain drop-shadow-md">
+                        <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="h-10 sm:h-14 max-w-[120px] sm:max-w-[150px] object-contain drop-shadow-md">
                     {% endif %}
                 </a>
                 {% endfor %}
             </div>
-
         </div>
+
+        <!-- زر الإغلاق X -->
+        <button @click="showSponsors = false" 
+                title="إغلاق" 
+                class="absolute left-2 top-2 text-gray-400 hover:text-white hover:bg-purple-900/50 rounded-full p-1 transition focus:outline-none">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
     </section>
     {% endif %}
 
