@@ -12,6 +12,7 @@ from django.http import HttpResponse, JsonResponse
 from django.db.models import Sum, Prefetch, Q, Count, Max
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
+from django_ratelimit.decorators import ratelimit
 
 from .models import (
     League, RealTeam, Player, Gameweek, Match,
@@ -301,6 +302,7 @@ def join_league(request, league_id=None):
 # ==========================================
 
 @login_required
+@ratelimit(key='ip', rate='30/m', block=True)
 def squad_builder(request):
     user_teams = UserFantasyTeam.objects.filter(user=request.user)
 
@@ -341,6 +343,7 @@ def squad_builder(request):
 # ==========================================
 
 @login_required
+@ratelimit(key='ip', rate='20/m', block=True)
 def add_player_to_squad(request, player_id):
     """إضافة لاعب جديد للفريق وإدارة الميزانية بدون ضرب معادلات الأسعار"""
     player = get_object_or_404(Player, id=player_id)
@@ -408,6 +411,7 @@ def add_player_to_squad(request, player_id):
 
 
 @login_required
+@ratelimit(key='ip', rate='10/m', block=True)
 def save_squad(request):
     """حفظ التشكيلة"""
     if request.method == "POST":
@@ -436,6 +440,7 @@ def save_squad(request):
 
 
 @login_required
+@ratelimit(key='ip', rate='20/m', block=True)
 def remove_player_from_squad(request, player_id):
     """إزالة لاعب وإعادة ثمنه المباشر للميزانية بدون إفساد ميزانية بقية اللاعبين"""
     player = get_object_or_404(Player, id=player_id)
@@ -537,8 +542,9 @@ def set_vice_captain(request, player_id):
 
 
 @login_required
+@ratelimit(key='ip', rate='15/m', block=True)
 def swap_players(request, starter_id, sub_id):
-    """تبديل لاعب أساسي بآخر احتياطي (مجاني بالكامل داخل التشكيلة)"""
+    """تبديل لاعب أساسي بآخر احتياطي من دكة البدلاء بشرط تبديلين فقط (الأول مجاني والثاني بخصم 4 نقاط)"""
     starter = get_object_or_404(Player, id=starter_id)
     active_league = starter.team.league
 
@@ -556,6 +562,17 @@ def swap_players(request, starter_id, sub_id):
         sub = get_object_or_404(Player, id=sub_id)
 
         if squad.starting_players.filter(id=starter.id).exists() and squad.substitutes.filter(id=sub.id).exists():
+            # فحص عدد التبديلات المنجزة مسبقاً في هذه الجولة
+            current_subs_count = getattr(squad, 'substitutions_count', 0)
+
+            if current_subs_count >= 2:
+                err_msg = "لا يمكنك إجراء أكثر من تغييرين من دكة البدلاء لهذه الجولة!"
+                if request.headers.get('HX-Request'):
+                    return HttpResponse(err_msg, status=400)
+                messages.error(request, err_msg)
+                return redirect(f'/squad-builder/?league_id={active_league.id}')
+
+            # تنفيذ التبديل الفعلي
             squad.starting_players.remove(starter)
             squad.substitutes.remove(sub)
 
@@ -567,8 +584,17 @@ def swap_players(request, starter_id, sub_id):
             elif squad.vice_captain == starter:
                 squad.vice_captain = sub
 
+            # زيادة العداد وتطبيق الخصم عند التبديل الثاني
+            current_subs_count += 1
+            squad.substitutions_count = current_subs_count
+
+            if current_subs_count == 2:
+                squad.transfers_cost = getattr(squad, 'transfers_cost', 0) + 4
+                messages.warning(request, "تم إجراء التغيير الثاني وتطبيق خصم 4 نقاط من نقاط الجولة!")
+            else:
+                messages.success(request, "تم إجراء التغيير الأول المجاني بنجاح!")
+
             squad.save()
-            messages.success(request, "تم تبديل المراكز داخل التشكيلة بنجاح!")
 
     if request.headers.get('HX-Request'):
         context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
@@ -793,7 +819,7 @@ def enter_match_stats(request):
 
 @staff_member_required
 def get_player_previous_yellow_cards(request):
-    """API لجلب عدد الكروت الصفراء السابقة للاعب قبل الجولة المحددة لتنبيه الأدمن"""
+    """API لجلب عدد الكروت الصفراء السابقة للالاعب قبل الجولة المحددة لتنبيه الأدمن"""
     player_id = request.GET.get('player_id')
     gameweek_id = request.GET.get('gameweek_id')
     
@@ -938,8 +964,13 @@ class CustomLoginView(LoginView):
     template_name = 'fantasy/login.html'
     redirect_authenticated_user = True
 
+    @method_decorator(ratelimit(key='ip', rate='10/m', block=True))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
 
 @csrf_protect
+@ratelimit(key='ip', rate='5/m', block=True)
 def register(request):
     if request.user.is_authenticated:
         return redirect('squad_builder')
@@ -1361,12 +1392,13 @@ def news_and_awards(request):
     }
     return render(request, 'fantasy/news_and_awards.html', context)
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from .models import UserFantasyTeam, UserSquad, Gameweek, PlayerGameweekStat
+
+# ==========================================
+# 8. إدارة الخواص التكتيكية (Chips)
+# ==========================================
 
 @login_required
+@ratelimit(key='ip', rate='15/m', block=True)
 def activate_chip(request, team_id, chip_code):
     """
     دالة تفعيل الخاصية التكتيكية (Triple Captain, Bench Boost, Wildcard, Free Hit)
