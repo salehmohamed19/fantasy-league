@@ -165,21 +165,21 @@
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100 max-h-24"
              x-transition:leave-end="opacity-0 max-h-0"
-             class="bg-[#1a001d] border-b border-purple-900/50 py-2.5 px-4 shadow-inner relative">
+             class="bg-[#1a001d] border-b border-purple-900/50 py-2.5 px-2 sm:px-4 shadow-inner relative">
         
-        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 pl-6 sm:pl-0">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-4 pl-6 sm:pl-0">
             <!-- العنوان -->
             <span class="text-[11px] sm:text-xs font-bold text-plGreen uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 flex-shrink-0">
                 <span>⭐</span> هذه البطولة برعاية :
             </span>
 
             <!-- الشعارات -->
-            <div class="flex items-center justify-center gap-3 sm:gap-5 flex-wrap w-full">
+            <div class="flex items-center justify-center gap-1.5 sm:gap-3 flex-wrap">
                 {% for sponsor in current_league.sponsors.all %}
                 <a {% if sponsor.website_url %}href="{{ sponsor.website_url }}" target="_blank"{% else %}href="#" onclick="return false;"{% endif %} 
-                   class="flex items-center justify-center transition transform hover:scale-105 p-1" title="{{ sponsor.name }}">
+                   class="flex items-center justify-center transition transform hover:scale-105 p-0.5" title="{{ sponsor.name }}">
                     {% if sponsor.logo %}
-                        <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="h-14 sm:h-20 max-w-[150px] sm:max-w-[200px] object-contain drop-shadow-md transition-transform duration-200 hover:scale-110">
+                        <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="h-10 sm:h-16 max-w-[90px] sm:max-w-[160px] object-contain drop-shadow-md transition-transform duration-200 hover:scale-110">
                     {% endif %}
                 </a>
                 {% endfor %}
