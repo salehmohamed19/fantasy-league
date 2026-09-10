@@ -7,4 +7,7 @@ pillow>=10.0.0
 django-cloudinary-storage>=0.3.0
 cloudinary>=1.36.0
 python-dotenv>=1.0.0
-django-ratelimit
+django-ratelimit>=4.1.0
+requests>=2.31.0
+asgiref>=3.7.0
+sqlparse>=0.4.4
