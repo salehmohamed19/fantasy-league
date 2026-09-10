@@ -13,6 +13,7 @@ from django.db.models import Sum, Prefetch, Q, Count, Max
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 from django_ratelimit.decorators import ratelimit
+from django.utils.decorators import method_decorator
 
 from .models import (
     League, RealTeam, Player, Gameweek, Match,

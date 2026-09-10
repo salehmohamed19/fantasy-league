@@ -7,10 +7,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-eoi)ng2+&$69=ctha#a!gs(@f6v7dv5sy@dqrjh+k0!vs-chay')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# تعطيل الـ DEBUG في بيئة الإنتاج تلقائياً إذا توفر متغير بيئة على Render
+DEBUG = os.environ.get('RENDER') is None
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['fantazy-league.onrender.com', '127.0.0.1', 'localhost', '*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -21,9 +21,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     
     # Cloudinary storage app MUST be before staticfiles
-    'django.contrib.staticfiles',
     'cloudinary_storage',
-    
+    'django.contrib.staticfiles',
     'cloudinary',
     
     'fantasy',
@@ -44,7 +43,7 @@ ROOT_URLCONF = 'fantasy_project.urls'
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'BACKEND': 'django.template.backends.DjangoTemplates',
         'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -98,10 +97,10 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# مسارات البحث عن الملفات الثابتة في الجذر
+# فحص وجود المجلد قبل إضافته لمنع تحذير (staticfiles.W004)
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
-]
+] if (BASE_DIR / 'static').exists() else []
 
 # محرك تخزين مرن للملفات الثابتة يمنع مشاكل اختفاء الصور واللوجو
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
@@ -122,3 +121,11 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 CSRF_COOKIE_HTTPONLY = False
+
+# Reverse Proxy & Ratelimit Configuration for Render / Cloudflare
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
+# قراءة الـ IP عبر Render بدواعي Ratelimit (تُغير إلى HTTP_CF_CONNECTING_IP عند التواجد خلف Cloudflare)
+RATELIMIT_IP_META_KEY = 'HTTP_X_FORWARDED_FOR'
