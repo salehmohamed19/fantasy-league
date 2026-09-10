@@ -97,7 +97,10 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# فحص وجود المجلد قبل إضافته لمنع تحذير (staticfiles.W004)
+# إنشاء مجلد staticfiles برمجياً لمنع انهيار WhiteNoise إذا لم يُنفّذ أمر collectstatic
+STATIC_ROOT.mkdir(parents=True, exist_ok=True)
+
+# فحص وجود المجلد الرئيسي للملفات الثابتة الخاصة بالدومين لمنع تحذير (staticfiles.W004)
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ] if (BASE_DIR / 'static').exists() else []
