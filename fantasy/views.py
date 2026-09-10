@@ -1486,3 +1486,8 @@ def activate_chip(request, team_id, chip_code):
         messages.success(request, f"تم تفعيل خاصية {chip_name} بنجاح للجولة {current_gw.number}! 🚀")
 
     return redirect('squad_builder')
+
+from django.http import HttpResponse
+
+def ping(request):
+    return HttpResponse("OK", content_type="text/plain")

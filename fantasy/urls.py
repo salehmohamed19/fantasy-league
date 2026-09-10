@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth.views import LoginView, LogoutView
 from . import views
+from fantasy.views import ping
 
 urlpatterns = [
     # الرئيسية وبناء التشكيلة
@@ -35,7 +36,8 @@ urlpatterns = [
     path('compare/', views.compare_players, name='compare_players'),
     path('news/', views.news_and_awards, name='news_and_awards'),
     path('team/<int:team_id>/activate-chip/<str:chip_code>/', views.activate_chip, name='activate_chip'),
-    
+    path('ping/', ping, name='ping'),
+
     # المصادقة والحسابات
     path('login/', LoginView.as_view(template_name='fantasy/login.html', redirect_authenticated_user=True), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
