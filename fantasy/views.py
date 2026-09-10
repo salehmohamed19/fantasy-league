@@ -857,7 +857,7 @@ def enter_match_stats(request):
 
 @staff_member_required
 def get_player_previous_yellow_cards(request):
-    """API لجلب عدد الكروت الصفراء السابقة للالاعب قبل الجولة المحددة لتنبيه الأدمن"""
+    """API لجلب عدد الكروت الصفراء السابقة للاعب قبل الجولة المحددة لتنبيه الأدمن"""
     player_id = request.GET.get('player_id')
     gameweek_id = request.GET.get('gameweek_id')
     
