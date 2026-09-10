@@ -179,7 +179,7 @@
                 <a {% if sponsor.website_url %}href="{{ sponsor.website_url }}" target="_blank"{% else %}href="#" onclick="return false;"{% endif %} 
                    class="flex items-center justify-center transition transform hover:scale-105 p-1" title="{{ sponsor.name }}">
                     {% if sponsor.logo %}
-                        <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="h-10 sm:h-14 max-w-[120px] sm:max-w-[150px] object-contain drop-shadow-md">
+                        <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="h-14 sm:h-20 max-w-[150px] sm:max-w-[200px] object-contain drop-shadow-md transition-transform duration-200 hover:scale-110">
                     {% endif %}
                 </a>
                 {% endfor %}
