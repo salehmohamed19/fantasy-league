@@ -19,6 +19,7 @@ from .models import (
     League, RealTeam, Player, Gameweek, Match,
     PlayerGameweekStat, UserFantasyTeam, UserSquad, UserProfile
 )
+
 # جلب الموديلات بأمان في حال وجود PlayerStatusUpdate أو LeaguePrize أو Award
 try:
     from .models import PlayerStatusUpdate, LeaguePrize, Award
@@ -54,48 +55,71 @@ def process_gameweek_suspensions(active_league):
 
 
 def calculate_and_save_squad_points(gameweek):
-    """دالة لحساب نقاط كافة التشكيلات لجولة معينة بدعم الكابتن ونائب الكابتن وتحديث نقاط الفريق"""
+    """دالة لحساب نقاط كافة التشكيلات لجولة معينة بدعم الكابتن، نائب الكابتن، والخواص (Chips)"""
     stats = PlayerGameweekStat.objects.filter(gameweek=gameweek)
     player_points = {stat.player_id: stat.points for stat in stats}
     
     # الاعتماد المباشر على حقل played=True لمعرفة من شارك فعلياً
     played_players = set(stats.filter(played=True).values_list('player_id', flat=True))
 
-    squads = UserSquad.objects.filter(gameweek=gameweek).prefetch_related('starting_players')
+    squads = UserSquad.objects.filter(gameweek=gameweek).prefetch_related('starting_players', 'substitutes')
 
     for squad in squads:
         gw_points = 0
         captain_id = squad.captain_id
         vice_captain_id = squad.vice_captain_id
+        active_chip = getattr(squad, 'active_chip', 'NONE')
 
         # التحقق مما إذا كان الكابتن شارك بالفعل أم لا
         captain_played = captain_id in played_players if captain_id else False
         
-        # تحديد من سيأخذ مضاعفة النقاط (x2)
+        # تحديد من سيأخذ مضاعفة النقاط
         effective_captain_id = captain_id if captain_played else (vice_captain_id if vice_captain_id in played_players else None)
 
+        # 1. نقاط الأساسيين
         for player in squad.starting_players.all():
             pts = player_points.get(player.id, 0)
 
             if effective_captain_id and player.id == effective_captain_id:
-                pts *= 2
+                multiplier = 3 if active_chip == 'TC' else 2
+                pts *= multiplier
 
             gw_points += pts
 
+        # 2. نقاط البدلاء في حال تفعيل Bench Boost
+        if active_chip == 'BB':
+            for sub_player in squad.substitutes.all():
+                gw_points += player_points.get(sub_player.id, 0)
+
+        # 3. خصم التبديلات (إلغاؤها في حال Wildcard أو Free Hit)
         transfers_cost = getattr(squad, 'transfers_cost', 0) or 0
+        if active_chip in ['WC', 'FH']:
+            transfers_cost = 0
+
         final_gw_points = max(0, gw_points - transfers_cost)
 
         squad.points_earned = final_gw_points
         squad.save()
 
+        # 4. تثبيت استهلاك الخواص في حساب المستخدم
+        user_team = squad.user_team
+        if active_chip == 'TC':
+            user_team.triple_captain_used = True
+        elif active_chip == 'BB':
+            user_team.bench_boost_used = True
+        elif active_chip == 'WC':
+            user_team.wildcard_used = True
+        elif active_chip == 'FH':
+            user_team.free_hit_used = True
+
         # إعادة تجميع إجمالي النقاط للجولات المنشورة فقط
         total_pts = UserSquad.objects.filter(
-            user_team=squad.user_team,
+            user_team=user_team,
             gameweek__is_published=True
         ).aggregate(total=Sum('points_earned'))['total'] or 0
 
-        squad.user_team.total_points = total_pts
-        squad.user_team.save()
+        user_team.total_points = total_pts
+        user_team.save()
 
 
 def update_player_prices_for_gameweek(gameweek):
@@ -168,7 +192,11 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
     for player in squad.starting_players.all():
         stat = player_stats_map.get(player.id)
         pts = stat.points if stat else 0
-        player.current_pts = pts * 2 if squad.captain_id == player.id else pts
+        
+        # مضاعفة العرض بناءً على الكابتن أو Triple Captain
+        multiplier = 3 if (getattr(squad, 'active_chip', 'NONE') == 'TC' and squad.captain_id == player.id) else (2 if squad.captain_id == player.id else 1)
+        player.current_pts = pts * multiplier
+        
         attach_status_info(player)
         starters_list.append(player)
 
@@ -672,7 +700,7 @@ def leaderboard(request):
     teams = UserFantasyTeam.objects.filter(league=active_league).select_related('user').prefetch_related(
         Prefetch(
             'squads',
-            queryset=UserSquad.objects.prefetch_related('starting_players').select_related('gameweek'),
+            queryset=UserSquad.objects.prefetch_related('starting_players', 'substitutes').select_related('gameweek'),
             to_attr='fetched_squads'
         )
     )
@@ -702,6 +730,7 @@ def leaderboard(request):
                 gw_pts = 0
                 captain_id = squad.captain_id
                 vice_captain_id = squad.vice_captain_id
+                active_chip = getattr(squad, 'active_chip', 'NONE')
 
                 captain_played = (gw.id, captain_id) in played_players_set if captain_id else False
                 effective_captain_id = captain_id if captain_played else (vice_captain_id if (gw.id, vice_captain_id) in played_players_set else None)
@@ -709,10 +738,18 @@ def leaderboard(request):
                 for player in squad.starting_players.all():
                     pts = stats_dict.get((gw.id, player.id), 0)
                     if effective_captain_id and player.id == effective_captain_id:
-                        pts *= 2
+                        multiplier = 3 if active_chip == 'TC' else 2
+                        pts *= multiplier
                     gw_pts += pts
 
+                if active_chip == 'BB':
+                    for sub_player in squad.substitutes.all():
+                        gw_pts += stats_dict.get((gw.id, sub_player.id), 0)
+
                 transfers_cost = getattr(squad, 'transfers_cost', 0) or 0
+                if active_chip in ['WC', 'FH']:
+                    transfers_cost = 0
+
                 gw_pts = max(0, gw_pts - transfers_cost)
 
                 total_pts += gw_pts
@@ -1154,6 +1191,7 @@ def view_closed_squad(request, gw_id):
 
         captain_id = squad.captain_id
         vice_captain_id = squad.vice_captain_id
+        active_chip = getattr(squad, 'active_chip', 'NONE')
         captain_played = captain_id in played_players_set if captain_id else False
         effective_captain_id = captain_id if captain_played else (vice_captain_id if vice_captain_id in played_players_set else None)
 
@@ -1163,7 +1201,8 @@ def view_closed_squad(request, gw_id):
             is_vice = (squad.vice_captain_id == player.id)
             is_effective = (effective_captain_id == player.id)
 
-            final_pts = base_pts * 2 if is_effective else base_pts
+            multiplier = 3 if (active_chip == 'TC' and is_effective) else (2 if is_effective else 1)
+            final_pts = base_pts * multiplier
 
             starters_list.append({
                 'id': player.id,
@@ -1406,7 +1445,6 @@ def activate_chip(request, team_id, chip_code):
     """
     user_team = get_object_or_404(UserFantasyTeam, id=team_id, user=request.user)
     
-    # 1. البحث عن الجولة الحالية المفعلة (التي لم تنتهِ بعد)
     current_gw = Gameweek.objects.filter(
         league=user_team.league, 
         is_finished=False
@@ -1416,13 +1454,11 @@ def activate_chip(request, team_id, chip_code):
         messages.error(request, "عذراً، التغييرات والخواص مغلقة حالياً لهذه الجولة.")
         return redirect('squad_builder')
 
-    # 2. الحصول على تشكيلة المستخدم للجولة الحالية أو إنشائها
-    squad, created = UserSquad.objects.get_or_create(
+    squad, _ = UserSquad.objects.get_or_create(
         user_team=user_team,
         gameweek=current_gw
     )
 
-    # 3. جدول التحقق من الاستخدام المسبق استناداً لأسماء الحقول في UserFantasyTeam
     chip_verify_map = {
         'TC': (user_team.triple_captain_used, 'Triple Captain (x3)'),
         'BB': (user_team.bench_boost_used, 'Bench Boost'),
@@ -1436,12 +1472,10 @@ def activate_chip(request, team_id, chip_code):
 
     is_used, chip_name = chip_verify_map[chip_code]
 
-    # التحقق مما إذا كانت الكارت مستخدمة سابقاً في الموسم
     if is_used:
         messages.error(request, f"لقد قمت باستخدام خاصية {chip_name} بالفعل هذا الموسم!")
         return redirect('squad_builder')
 
-    # إلغاء الخاصية إذا ضغط عليها المستخدم مرة أخرى وهي مفعالة بالفعل
     if squad.active_chip == chip_code:
         squad.active_chip = 'NONE'
         squad.save()
@@ -1452,52 +1486,3 @@ def activate_chip(request, team_id, chip_code):
         messages.success(request, f"تم تفعيل خاصية {chip_name} بنجاح للجولة {current_gw.number}! 🚀")
 
     return redirect('squad_builder')
-
-
-def calculate_squad_gameweek_points(user_squad):
-    """
-    دالة حساب نقاط التشكيلة وتطبيق الخواص النشطة بناءً على موديل UserSquad و UserFantasyTeam
-    """
-    active_chip = user_squad.active_chip
-    total_points = 0
-
-    # 1. حساب نقاط اللاعبين الأساسيين
-    for player in user_squad.starting_players.all():
-        stat = PlayerGameweekStat.objects.filter(player=player, gameweek=user_squad.gameweek).first()
-        player_pts = stat.points if stat else 0
-
-        # تطبيق خاصية Triple Captain
-        if user_squad.captain and player.id == user_squad.captain.id:
-            multiplier = 3 if active_chip == 'TC' else 2
-            total_points += (player_pts * multiplier)
-        else:
-            total_points += player_pts
-
-    # 2. حساب نقاط الدكة في حالة تفعيل Bench Boost (BB)
-    if active_chip == 'BB':
-        for sub_player in user_squad.substitutes.all():
-            stat = PlayerGameweekStat.objects.filter(player=sub_player, gameweek=user_squad.gameweek).first()
-            total_points += (stat.points if stat else 0)
-
-    # 3. تطبيق خصم النقاط للتغيرات الزائدة (سفر في حالة Wildcard أو Free Hit)
-    if active_chip not in ['WC', 'FH']:
-        total_points -= user_squad.transfers_cost
-
-    # 4. حفظ وتثبيت النقاط في الموديل
-    user_squad.points_earned = total_points
-    user_squad.save()
-
-    # 5. استهلاك الخاصية دائماً في موديل UserFantasyTeam بعد اعتماد الجولة
-    user_team = user_squad.user_team
-    if active_chip == 'TC':
-        user_team.triple_captain_used = True
-    elif active_chip == 'BB':
-        user_team.bench_boost_used = True
-    elif active_chip == 'WC':
-        user_team.wildcard_used = True
-    elif active_chip == 'FH':
-        user_team.free_hit_used = True
-
-    user_team.save()
-
-    return total_points
