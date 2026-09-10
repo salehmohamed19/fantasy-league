@@ -7,10 +7,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-eoi)ng2+&$69=ctha#a!gs(@f6v7dv5sy@dqrjh+k0!vs-chay')
 
-# تعطيل الـ DEBUG في بيئة الإنتاج تلقائياً إذا توفر متغير بيئة على Render
-DEBUG = os.environ.get('RENDER') is None
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
 
-ALLOWED_HOSTS = ['fantazy-league.onrender.com', '127.0.0.1', 'localhost', '*']
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -20,7 +20,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     
-    # Cloudinary storage app MUST be before staticfiles
+    # Cloudinary storage MUST be placed before staticfiles
     'cloudinary_storage',
     'django.contrib.staticfiles',
     'cloudinary',
@@ -30,7 +30,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # لإدارة الملفات الثابتة في البيئة الإنتاجية
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise for static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -53,7 +53,6 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'fantasy.context_processors.global_timer_context',
-                'fantasy.context_processors.current_league_sponsors',
             ],
         },
     },
@@ -70,13 +69,6 @@ DATABASES = {
     )
 }
 
-# Cache Configuration (مهم جداً لعمل django-ratelimit بدون أخطاء 500)
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-    }
-}
-
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -90,32 +82,24 @@ TIME_ZONE = 'Africa/Cairo'
 USE_I18N = True
 USE_TZ = True
 
-# Cloudinary Configuration (التحقق الأمني لعدم ضرب السيرفر في حال غياب المفاتيح)
-CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME')
+# Cloudinary Configuration
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+}
 
-if CLOUDINARY_CLOUD_NAME:
-    CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
-        'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
-        'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
-    }
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-else:
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+# Cloud Storage Engine for Media Files
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Static Files
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# إنشاء مجلد staticfiles برمجياً لمنع انهيار WhiteNoise إذا لم يُنفّذ أمر collectstatic
-STATIC_ROOT.mkdir(parents=True, exist_ok=True)
-
-# فحص وجود المجلد الرئيسي للملفات الثابتة الخاصة بالدومين لمنع تحذير (staticfiles.W004)
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
-] if (BASE_DIR / 'static').exists() else []
+]
 
-# محرك تخزين مرن للملفات الثابتة يمنع مشاكل اختفاء الصور واللوجو
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Media Files Config
@@ -134,11 +118,3 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 CSRF_COOKIE_HTTPONLY = False
-
-# Reverse Proxy & Ratelimit Configuration for Render / Cloudflare
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-USE_X_FORWARDED_HOST = True
-USE_X_FORWARDED_PORT = True
-
-# قراءة الـ IP عبر Render بدواعي Ratelimit (تُغير إلى HTTP_CF_CONNECTING_IP عند التواجد خلف Cloudflare)
-RATELIMIT_IP_META_KEY = 'HTTP_X_FORWARDED_FOR'
