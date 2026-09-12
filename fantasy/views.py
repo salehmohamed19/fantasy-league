@@ -622,14 +622,13 @@ def swap_players(request, starter_id, sub_id):
     if squad:
         sub = get_object_or_404(Player, id=sub_id)
 
-        # التأكد من أن التبديل بين لاعب أساسي ولاعب من الدكة
         if squad.starting_players.filter(id=starter.id).exists() and squad.substitutes.filter(id=sub.id).exists():
             
-            # قراءة العداد الحالي من الداتابيز مباشرة لضمان عدم القراءة الخطأ
+            # تحديث الكائن من الداتابيز مباشرة
             squad.refresh_from_db(fields=['substitutions_count', 'transfers_cost'])
             current_subs = squad.substitutions_count or 0
 
-            # 1. إذا كان أجرى تبديلين سابقاً، يُمنع من الحركة الثالثة فوراً
+            # 1. منع الحركة الثالثة فوراً
             if current_subs >= 2:
                 err_msg = "عفواً! استنفذت الحد الأقصى للتبديلات لهذه الجولة (تبديلان فقط)."
                 if request.headers.get('HX-Request'):
@@ -643,23 +642,21 @@ def swap_players(request, starter_id, sub_id):
             squad.starting_players.add(sub)
             squad.substitutes.add(starter)
 
-            # تعديل الشارة تلقائياً إن كان المستبدل كابتن أو نائبه
             if squad.captain == starter:
                 squad.captain = sub
             elif squad.vice_captain == starter:
                 squad.vice_captain = sub
 
-            # 3. زيادة العداد حركة واحدة فوراً
+            # 3. زيادة العداد وحساب الخصم والرسائل
             squad.substitutions_count = current_subs + 1
 
-            # 4. تحديد الرسالة والخصم بناءً على الترتيب الجديد
             if squad.substitutions_count == 1:
                 messages.success(request, "تم إجراء التبديل الأول المجاني بنجاح!")
             elif squad.substitutions_count == 2:
                 squad.transfers_cost = (squad.transfers_cost or 0) + 4
                 messages.warning(request, "تم إجراء التبديل الثاني وتطبيق خصم 4 نقاط من نقاط الجولة!")
 
-            # حفظ التغييرات فوراً في قاعدة البيانات
+            # حفظ التغيرات فوراً في قاعدة البيانات
             squad.save()
 
     if request.headers.get('HX-Request'):

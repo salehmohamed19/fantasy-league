@@ -393,6 +393,7 @@ class UserSquad(models.Model):
 
     active_chip = models.CharField(max_length=10, choices=CHIP_CHOICES, default='NONE', verbose_name="الخاصية المفعّلة")
     transfers_made = models.PositiveIntegerField(default=0, verbose_name="عدد التبديلات المنجزة")
+    substitutions_count = models.PositiveIntegerField(default=0, verbose_name="عدد حركة تبديلات الدكة")
     transfers_cost = models.IntegerField(default=0, verbose_name="خصم التغييرات")
     is_saved = models.BooleanField(default=False, verbose_name="تم حفظ التشكيلة")
     points_earned = models.IntegerField(default=0, verbose_name="نقاط الجولة")
@@ -407,7 +408,6 @@ class UserSquad(models.Model):
         if self.captain and self.vice_captain and self.captain == self.vice_captain:
             raise ValidationError("لا يمكن اختيار نفس اللاعب ككابتن ونائب كابتن في نفس الوقت.")
         
-        # التحقق من أن الاحتياط لا يتجاوز 2 لاعبين عند الحفظ
         if self.pk:
             if self.starting_players.count() > 6:
                 raise ValidationError("لا يمكن إضافة أكثر من 6 لاعبين في التشكيلة الأساسية.")
@@ -416,7 +416,7 @@ class UserSquad(models.Model):
 
     def __str__(self):
         return f"تشكيلة {self.user_team.name} - {self.gameweek}"
-
+    
 
 # 9. مركز الأخبار والتحديثات العامة
 class NewsAndUpdate(models.Model):
