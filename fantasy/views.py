@@ -442,7 +442,7 @@ def add_player_to_squad(request, player_id):
 @login_required
 @ratelimit(key='ip', rate='10/m', block=True)
 def save_squad(request):
-    """حفظ التشكيلة"""
+    """حفظ التشكيلة مع التحقق من اشتراطات مراكز الأساسيين"""
     if request.method == "POST":
         league_id = request.POST.get('league_id') or request.GET.get('league_id')
         user_team = get_object_or_404(UserFantasyTeam, user=request.user, league_id=league_id)
@@ -454,14 +454,46 @@ def save_squad(request):
 
         squad = UserSquad.objects.filter(user_team=user_team, gameweek=current_gw).first()
         if squad:
-            total_players = squad.starting_players.count() + squad.substitutes.count()
+            starting_players = squad.starting_players.all()
+            total_players = starting_players.count() + squad.substitutes.count()
 
             if total_players < 8:
                 messages.error(request, "يجب إكمال التشكيلة (8 لاعبين: 6 أساسيين و 2 احتياطي) قبل الحفظ!")
             else:
-                squad.is_saved = True
-                squad.save()
-                messages.success(request, "تم حفظ تشكيلتك وتثبيتها بنجاح لهذه الجولة!")
+                # 1. إحصاء مراكز اللاعبين الأساسيين الـ 6
+                gk_count = 0
+                def_count = 0
+                mid_count = 0
+
+                pos_map = {
+                    'GK': ['GK'],
+                    'DEF': ['CB', 'RB', 'LB', 'RWB', 'LWB', 'DEF'],
+                    'MID': ['CDM', 'CM', 'CAM', 'RM', 'LM', 'RW', 'LW', 'MID'],
+                }
+
+                for player in starting_players:
+                    # جلب مركز اللاعب الرئيسي وتوحيد صيغته
+                    pos = getattr(player, 'main_category', getattr(player, 'position', '')).upper()
+                    
+                    if pos in pos_map['GK']:
+                        gk_count += 1
+                    elif pos in pos_map['DEF']:
+                        def_count += 1
+                    elif pos in pos_map['MID']:
+                        mid_count += 1
+
+                # 2. التحقق من تحقق شروط التشكيلة الأساسية
+                if gk_count != 1:
+                    messages.error(request, "عفواً، يجب وجود حارس مرمى واحد فقط في التشكيلة الأساسية!")
+                elif def_count < 1:
+                    messages.error(request, "عفواً، يجب وجود مدافع واحد على الأقل في التشكيلة الأساسية!")
+                elif mid_count < 1:
+                    messages.error(request, "عفواً، يجب وجود لاعب خط وسط واحد على الأقل في التشكيلة الأساسية!")
+                else:
+                    # في حال استيفاء جميع الشروط يتم الحفظ بنجاح
+                    squad.is_saved = True
+                    squad.save()
+                    messages.success(request, "تم حفظ تشكيلتك وتثبيتها بنجاح لهذه الجولة!")
 
         return redirect(f'/squad-builder/?league_id={user_team.league.id}')
 
