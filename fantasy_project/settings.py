@@ -100,7 +100,7 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media Files Config
 MEDIA_URL = '/media/'
@@ -115,7 +115,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'https://*.onrender.com',
     'https://*.up.railway.app',
-    'https://fantazy-league.onrender.com/'
+    'https://fantazy-league.onrender.com'
     
 ]
 
