@@ -1524,4 +1524,3 @@ def activate_chip(request, team_id, chip_code):
 
 def ping(request):
     return HttpResponse("OK", content_type="text/plain")
-
