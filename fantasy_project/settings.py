@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-eoi)ng2+&$69=ctha#a!gs(@f6v7dv5sy@dqrjh+k0!vs-chay')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -64,7 +64,7 @@ WSGI_APPLICATION = 'fantasy_project.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=60,
+        conn_max_age=10,
         conn_health_checks=True,
     )
 }
@@ -115,7 +115,12 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'https://*.onrender.com',
     'https://*.up.railway.app',
+    'https://fantazy-league.onrender.com'
     
 ]
 
-CSRF_COOKIE_HTTPONLY = False
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+CSRF_FAILURE_VIEW = 'fantasy.views.custom_csrf_failure_view'

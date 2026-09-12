@@ -1,0 +1,8 @@
+{% extends "base.html" %} <!-- أو استخدم تصميم HTML عادي -->
+{% block content %}
+<div style="text-align: center; padding: 50px;">
+    <h1>404 - الصفحة غير موجودة</h1>
+    <p>عذراً، الصفحة التي تحاول الوصول إليها غير موجودة أو تم نقلها.</p>
+    <a href="{% url 'squad_builder' %}">العودة للصفحة الرئيسية</a>
+</div>
+{% endblock %}

@@ -1524,3 +1524,9 @@ def activate_chip(request, team_id, chip_code):
 
 def ping(request):
     return HttpResponse("OK", content_type="text/plain")
+
+from django.shortcuts import render
+
+def custom_csrf_failure_view(request, reason=""):
+    # يمكنك تسجيل سبب الخطأ في Log إن أردت
+    return render(request, '403_csrf.html', status=403)
