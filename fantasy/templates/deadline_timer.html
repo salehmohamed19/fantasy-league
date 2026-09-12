@@ -42,7 +42,22 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if (distance <= 0) {
             clearInterval(timer);
-            window.location.reload();
+
+            // طباعة أصفار في الشاشة
+            const elDays = document.getElementById("sq-cd-days");
+            if (elDays) {
+                elDays.innerText = "00";
+                document.getElementById("sq-cd-hours").innerText = "00";
+                document.getElementById("sq-cd-minutes").innerText = "00";
+                document.getElementById("sq-cd-seconds").innerText = "00";
+            }
+
+            // منع حلقة الريستارت المفتوحة: إعادة التحميل مرة واحدة فقط
+            const reloadKey = "reloaded_for_target_" + targetDate;
+            if (!sessionStorage.getItem(reloadKey)) {
+                sessionStorage.setItem(reloadKey, "true");
+                window.location.reload();
+            }
             return;
         }
 
