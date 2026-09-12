@@ -605,7 +605,7 @@ def set_vice_captain(request, player_id):
 @login_required
 @ratelimit(key='ip', rate='15/m', block=True)
 def swap_players(request, starter_id, sub_id):
-    """تبديل لاعب أساسي بآخر احتياطي من دكة البدلاء بشرط تبديلين فقط (الأول مجاني والثاني بخصم 4 نقاط)"""
+    """حساب أي حركة تبديل بين الأساسي والاحتياطي فوراً وبشكل تراكمي"""
     starter = get_object_or_404(Player, id=starter_id)
     active_league = starter.team.league
 
@@ -622,40 +622,44 @@ def swap_players(request, starter_id, sub_id):
     if squad:
         sub = get_object_or_404(Player, id=sub_id)
 
+        # التأكد من أن التبديل بين لاعب أساسي ولاعب من الدكة
         if squad.starting_players.filter(id=starter.id).exists() and squad.substitutes.filter(id=sub.id).exists():
-            current_subs_count = getattr(squad, 'substitutions_count', 0) or 0
+            
+            # قراءة العداد الحالي من الداتابيز مباشرة لضمان عدم القراءة الخطأ
+            squad.refresh_from_db(fields=['substitutions_count', 'transfers_cost'])
+            current_subs = squad.substitutions_count or 0
 
-            # 1. منع التبديل الثالث وتنبيبه فوراً باستنفاد التبديلات
-            if current_subs_count >= 2:
-                err_msg = "عفواً، لقد استنفذت عدد التبديلات المتاحة لهذه الجولة (تبديلان فقط)!"
+            # 1. إذا كان أجرى تبديلين سابقاً، يُمنع من الحركة الثالثة فوراً
+            if current_subs >= 2:
+                err_msg = "عفواً! استنفذت الحد الأقصى للتبديلات لهذه الجولة (تبديلان فقط)."
                 if request.headers.get('HX-Request'):
                     return HttpResponse(err_msg, status=400)
                 messages.error(request, err_msg)
                 return redirect(f'/squad-builder/?league_id={active_league.id}')
 
-            # 2. تنفيذ التبديل الفعلي
+            # 2. تنفيذ نقل اللاعبين
             squad.starting_players.remove(starter)
             squad.substitutes.remove(sub)
-
             squad.starting_players.add(sub)
             squad.substitutes.add(starter)
 
-            # تعديل الكابتن أو نائبه تلقائياً إن كان أحدهما هو اللاعب المستبدل
+            # تعديل الشارة تلقائياً إن كان المستبدل كابتن أو نائبه
             if squad.captain == starter:
                 squad.captain = sub
             elif squad.vice_captain == starter:
                 squad.vice_captain = sub
 
-            # 3. تحديث عداد التبديلات وتطبيق الخصم
-            current_subs_count += 1
-            squad.substitutions_count = current_subs_count
+            # 3. زيادة العداد حركة واحدة فوراً
+            squad.substitutions_count = current_subs + 1
 
-            if current_subs_count == 1:
+            # 4. تحديد الرسالة والخصم بناءً على الترتيب الجديد
+            if squad.substitutions_count == 1:
                 messages.success(request, "تم إجراء التبديل الأول المجاني بنجاح!")
-            elif current_subs_count == 2:
-                squad.transfers_cost = (getattr(squad, 'transfers_cost', 0) or 0) + 4
+            elif squad.substitutions_count == 2:
+                squad.transfers_cost = (squad.transfers_cost or 0) + 4
                 messages.warning(request, "تم إجراء التبديل الثاني وتطبيق خصم 4 نقاط من نقاط الجولة!")
 
+            # حفظ التغييرات فوراً في قاعدة البيانات
             squad.save()
 
     if request.headers.get('HX-Request'):
