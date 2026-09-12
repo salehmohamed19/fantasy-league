@@ -937,7 +937,7 @@ def close_current_gameweek(request):
 
     return redirect('leaderboard')
 
-
+# دي حاليا ملهاش لازمة لان اللي تحتها بتقوم بدورها
 @staff_member_required
 def open_next_gameweek(request):
     if request.method == "POST":
@@ -1005,7 +1005,7 @@ def close_and_advance_gameweek(request):
             is_published=False
         )
 
-        messages.success(request, f"تم إنهاء الجولة وخصم مباريات الإيقاف وفتح الجولة {new_gw.number}!")
+        messages.success(request, f"تم خصم مباريات الإيقاف وفتح الجولة الجديدة {new_gw.number}!")
         return redirect(f"/leaderboard/?league_id={active_league.id}")
 
     return redirect('leaderboard')
