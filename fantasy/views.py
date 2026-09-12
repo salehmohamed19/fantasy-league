@@ -623,37 +623,38 @@ def swap_players(request, starter_id, sub_id):
         sub = get_object_or_404(Player, id=sub_id)
 
         if squad.starting_players.filter(id=starter.id).exists() and squad.substitutes.filter(id=sub.id).exists():
-            # فحص عدد التبديلات المنجزة مسبقاً في هذه الجولة
-            current_subs_count = getattr(squad, 'substitutions_count', 0)
+            current_subs_count = getattr(squad, 'substitutions_count', 0) or 0
 
+            # 1. منع التبديل الثالث وتنبيبه فوراً باستنفاد التبديلات
             if current_subs_count >= 2:
-                err_msg = "لا يمكنك إجراء أكثر من تغييرين من دكة البدلاء لهذه الجولة!"
+                err_msg = "عفواً، لقد استنفذت عدد التبديلات المتاحة لهذه الجولة (تبديلان فقط)!"
                 if request.headers.get('HX-Request'):
                     return HttpResponse(err_msg, status=400)
                 messages.error(request, err_msg)
                 return redirect(f'/squad-builder/?league_id={active_league.id}')
 
-            # تنفيذ التبديل الفعلي
+            # 2. تنفيذ التبديل الفعلي
             squad.starting_players.remove(starter)
             squad.substitutes.remove(sub)
 
             squad.starting_players.add(sub)
             squad.substitutes.add(starter)
 
+            # تعديل الكابتن أو نائبه تلقائياً إن كان أحدهما هو اللاعب المستبدل
             if squad.captain == starter:
                 squad.captain = sub
             elif squad.vice_captain == starter:
                 squad.vice_captain = sub
 
-            # زيادة العداد وتطبيق الخصم عند التبديل الثاني
+            # 3. تحديث عداد التبديلات وتطبيق الخصم
             current_subs_count += 1
             squad.substitutions_count = current_subs_count
 
-            if current_subs_count == 2:
-                squad.transfers_cost = getattr(squad, 'transfers_cost', 0) + 4
-                messages.warning(request, "تم إجراء التغيير الثاني وتطبيق خصم 4 نقاط من نقاط الجولة!")
-            else:
-                messages.success(request, "تم إجراء التغيير الأول المجاني بنجاح!")
+            if current_subs_count == 1:
+                messages.success(request, "تم إجراء التبديل الأول المجاني بنجاح!")
+            elif current_subs_count == 2:
+                squad.transfers_cost = (getattr(squad, 'transfers_cost', 0) or 0) + 4
+                messages.warning(request, "تم إجراء التبديل الثاني وتطبيق خصم 4 نقاط من نقاط الجولة!")
 
             squad.save()
 
