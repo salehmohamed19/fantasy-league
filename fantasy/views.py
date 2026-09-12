@@ -1521,7 +1521,6 @@ def activate_chip(request, team_id, chip_code):
 
     return redirect('squad_builder')
 
-from django.http import HttpResponse
 
 def ping(request):
     return HttpResponse("OK", content_type="text/plain")
