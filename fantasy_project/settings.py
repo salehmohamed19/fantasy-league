@@ -19,10 +19,9 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.staticfiles',  # تم تقديمه هنا
     
-    # Cloudinary storage MUST be placed before staticfiles
     'cloudinary_storage',
-    'django.contrib.staticfiles',
     'cloudinary',
     
     'fantasy',
@@ -83,13 +82,13 @@ USE_I18N = True
 USE_TZ = True
 
 # Cloudinary Configuration
-CLOUDINARY_STORAGE = {
+CCLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+    'STATIC_IMAGES_EXTENSIONS': [],  # منع الكلاوديناري من التعامل مع الامتدادات كـ static
 }
 
-# Cloud Storage Engine for Media Files
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Static Files
@@ -100,7 +99,7 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Media Files Config
 MEDIA_URL = '/media/'
