@@ -9,7 +9,7 @@
             <h1 class="text-2xl font-black text-white flex items-center gap-2">
                 📊 أرشيف الجولات والنتائج
             </h1>
-            <p class="text-xs text-gray-400 mt-1">استعرض نقاطك بالتفصيل في كل جولة عبر مختلف البطولات التي تشارك فيها</p>
+            <p class="text-xs text-gray-400 mt-1">استعرض نقاطك والكروت المستخدمة بالتفصيل في كل جولة عبر مختلف البطولات</p>
         </div>
         <div class="bg-purple-950/60 px-4 py-2 rounded-xl border border-purple-800/40 text-center">
             <span class="text-xs text-gray-400 block font-bold">إجمالي البطولات</span>
@@ -44,15 +44,35 @@
                         {% if gw.id %}
                             
                             {% if gw.is_published %}
-                                <!-- 1. الجولة منشورة ومعتمدة نهائياً - التشكيلة متاح لرؤيتها للجميع -->
+                                <!-- 1. الجولة منشورة ومعتمدة نهائياً -->
                                 <a href="{% url 'view_closed_squad' gw_id=gw.id %}" 
                                    title="اضغط لعرض تشكيلة الجولة {{ gw.number }}"
-                                   class="bg-slate-900/90 border border-gray-800 hover:border-plGreen p-3 rounded-xl flex flex-col items-center justify-between text-center transition-all transform hover:-translate-y-1 shadow-md group">
+                                   class="bg-slate-900/90 border border-gray-800 hover:border-plGreen p-3 rounded-xl flex flex-col items-center justify-between text-center transition-all transform hover:-translate-y-1 shadow-md group relative">
                                     
                                     <span class="text-xs font-bold text-gray-400 group-hover:text-plGreen transition">
                                         الجولة {{ gw.number }}
                                     </span>
                                     
+                                    <!-- عرض الكارت المستخدم إن وجد -->
+                                    {% if gw.used_chip or gw.active_card %}
+                                        <div class="mt-1">
+                                            <span class="text-[9px] font-black px-2 py-0.5 rounded-full border shadow-sm inline-block
+                                                {% if gw.used_chip == '3x' or gw.active_card == 'triple_captain' %}
+                                                    bg-amber-500/20 text-amber-300 border-amber-500/40
+                                                {% elif gw.used_chip == 'wildcard' or gw.active_card == 'wildcard' %}
+                                                    bg-blue-500/20 text-blue-300 border-blue-500/40
+                                                {% elif gw.used_chip == 'free_hit' or gw.active_card == 'free_hit' %}
+                                                    bg-emerald-500/20 text-emerald-300 border-emerald-500/40
+                                                {% elif gw.used_chip == 'bench_boost' or gw.active_card == 'bench_boost' %}
+                                                    bg-purple-500/20 text-purple-300 border-purple-500/40
+                                                {% else %}
+                                                    bg-pink-500/20 text-pink-300 border-pink-500/40
+                                                {% endif %}">
+                                                ⚡ {{ gw.used_chip|default:gw.active_card }}
+                                            </span>
+                                        </div>
+                                    {% endif %}
+
                                     <div class="my-2">
                                         <span class="text-2xl font-black text-amber-400 group-hover:text-plGreen transition">{{ gw.points }}</span>
                                         <span class="text-[10px] text-gray-500 block">نقاط</span>
@@ -72,11 +92,17 @@
                                 </a>
 
                             {% elif gw.has_stats %}
-                                <!-- 2. الإحصائيات تم إدخالها ولكنها في انتظار اعتماد الأدمن (التشكيلة مخفية إلا عن الأدمن إن أراد) -->
+                                <!-- 2. الإحصائيات تم إدخالها ولكنها في انتظار الاعتماد -->
                                 <div class="bg-slate-900/90 border border-amber-500/40 p-3 rounded-xl flex flex-col items-center justify-between text-center shadow-md relative">
                                     <span class="text-xs font-bold text-gray-400">
                                         الجولة {{ gw.number }}
                                     </span>
+
+                                    {% if gw.used_chip or gw.active_card %}
+                                        <span class="mt-1 text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                                            ⚡ {{ gw.used_chip|default:gw.active_card }}
+                                        </span>
+                                    {% endif %}
                                     
                                     <div class="my-1">
                                         <span class="text-xs font-bold text-amber-400 block leading-tight">
@@ -87,13 +113,11 @@
 
                                     <div class="w-full space-y-1.5 mt-2">
                                         {% if request.user.is_staff %}
-                                            <!-- إمكانية عرض التشكيلة للأدمن فقط للتأكد قبل الاعتماد -->
                                             <a href="{% url 'view_closed_squad' gw_id=gw.id %}" 
                                                class="text-[10px] text-purple-300 hover:text-white bg-purple-900/40 hover:bg-purple-800/60 border border-purple-700/40 py-1 px-2 rounded-lg block font-bold transition">
                                                 👁️ معاينة التشكيلة
                                             </a>
 
-                                            <!-- زر الاعتماد والنشر للأدمن فقط -->
                                             <form action="{% url 'publish_gameweek_stats' gw.id %}" method="POST" class="w-full">
                                                 {% csrf_token %}
                                                 <button type="submit" class="w-full text-[9px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1 px-1 rounded shadow transition">
@@ -107,15 +131,21 @@
                                 </div>
 
                             {% else %}
-                                <!-- 3. الجولة مغلقة وبانتظار رفع الإحصائيات (زر التشكيلة مخفي بالكامل) -->
+                                <!-- 3. الجولة مغلقة وبانتظار رفع الإحصائيات -->
                                 <div class="bg-slate-900/90 border border-yellow-500/30 p-3 rounded-xl flex flex-col items-center justify-between text-center shadow-md">
                                     <span class="text-xs font-bold text-gray-400">
                                         الجولة {{ gw.number }}
                                     </span>
+
+                                    {% if gw.used_chip or gw.active_card %}
+                                        <span class="mt-1 text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                                            ⚡ {{ gw.used_chip|default:gw.active_card }}
+                                        </span>
+                                    {% endif %}
                                     
                                     <div class="my-2">
                                         <span class="text-xs font-bold text-yellow-400 block leading-relaxed">
-                                            ⚽ جاري لعب المباريات و رصد الإحصائيات
+                                            ⚽ جاري لعب المباريات
                                         </span>
                                     </div>
 

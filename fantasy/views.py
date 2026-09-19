@@ -181,8 +181,14 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
 
     def attach_status_info(player):
         stat = player_stats_map.get(player.id)
+        # جلب حالة الكروت للجولة الحالية إن وجدت
         player.yellow_card = stat.yellow_card if stat else False
         player.red_card = stat.red_card if stat else False
+    
+        # إضافة إجمالي الكروت السابقة للموسم لسهولة عرضها للمستخدم
+        player.total_yellows = getattr(player, 'total_yellow_cards', 0)
+        player.total_reds = getattr(player, 'total_red_cards', 0)
+    
         player.is_suspended_now = player.is_suspended and getattr(player, 'suspended_matches_left', 0) > 0
         player.total_pts = player_total_points.get(player.id, 0)
 
@@ -1219,7 +1225,8 @@ def view_closed_squad(request, gw_id):
 
     if squad:
         stats = PlayerGameweekStat.objects.filter(gameweek=gameweek)
-        stats_dict = {st.player_id: st.points for st in stats}
+        # تخزين كائن الإحصائيات بالكامل بدلاً من النقاط فقط لجلب الكروت
+        stats_dict = {st.player_id: st for st in stats}
         
         played_players_set = set(stats.filter(played=True).values_list('player_id', flat=True))
 
@@ -1230,7 +1237,8 @@ def view_closed_squad(request, gw_id):
         effective_captain_id = captain_id if captain_played else (vice_captain_id if vice_captain_id in played_players_set else None)
 
         for player in squad.starting_players.all():
-            base_pts = stats_dict.get(player.id, 0)
+            st = stats_dict.get(player.id)
+            base_pts = st.points if st else 0
             is_captain = (squad.captain_id == player.id)
             is_vice = (squad.vice_captain_id == player.id)
             is_effective = (effective_captain_id == player.id)
@@ -1247,14 +1255,21 @@ def view_closed_squad(request, gw_id):
                 'is_captain': is_captain,
                 'is_vice': is_vice,
                 'is_effective_captain': is_effective,
+                # إضافة الكروت للأساسيين
+                'yellow_card': st.yellow_card if st else False,
+                'red_card': st.red_card if st else False,
             })
 
         for player in squad.substitutes.all():
+            st = stats_dict.get(player.id)
             bench_list.append({
                 'id': player.id,
                 'name': player.name,
                 'position_display': player.get_position_display(),
-                'points': stats_dict.get(player.id, 0) if show_points else "-",
+                'points': st.points if (st and show_points) else "-",
+                # إضافة الكروت للبدلاء
+                'yellow_card': st.yellow_card if st else False,
+                'red_card': st.red_card if st else False,
             })
 
     context = {
@@ -1281,12 +1296,17 @@ def player_detail_modal(request, player_id):
         total_a = player.total_assists()
         matches_count = player.gameweek_stats.filter(played=True).count()
         clean_sheets_count = player.gameweek_stats.filter(clean_sheet=True).count()
+        # حساب الكروت التراكمية مباشرة من علاقة الإحصائيات
+        yellow_cards_count = player.gameweek_stats.filter(yellow_card=True).count()
+        red_cards_count = player.gameweek_stats.filter(red_card=True).count()
     except Exception:
         total_pts = 0
         total_g = 0
         total_a = 0
         matches_count = 0
         clean_sheets_count = 0
+        yellow_cards_count = 0
+        red_cards_count = 0
 
     stats = {
         'total_points': total_pts,
@@ -1294,8 +1314,8 @@ def player_detail_modal(request, player_id):
         'total_assists': total_a,
         'matches_played': matches_count,
         'clean_sheets': clean_sheets_count,
-        'yellow_cards': getattr(player, 'total_yellow_cards', 0),
-        'red_cards': getattr(player, 'total_red_cards', 0),
+        'yellow_cards': yellow_cards_count,
+        'red_cards': red_cards_count,
     }
 
     next_matches = []
