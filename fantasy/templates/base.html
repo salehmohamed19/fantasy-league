@@ -101,31 +101,38 @@
                          x-transition:leave="transition ease-in duration-75"
                          x-transition:leave-start="transform opacity-100 scale-100"
                          x-transition:leave-end="transform opacity-0 scale-95"
-                         class="absolute left-0 mt-2 w-44 bg-[#240028] border border-gray-700 rounded-xl shadow-2xl py-1 z-50 divide-y divide-gray-800"
+                         class="absolute left-0 mt-2 w-48 bg-[#240028] border border-gray-700 rounded-xl shadow-2xl py-1 z-50 divide-y divide-gray-800"
                          style="display: none;">
                         
-                        <!-- خيار الملف الشخصي -->
+                        <!-- 1️⃣ خيار الملف الشخصي -->
                         <a href="{% url 'profile' %}" 
                            class="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-plGreen/10 hover:text-plGreen transition">
                             <span>👤</span>
                             <span>الملف الشخصي</span>
                         </a>
 
-                        <!-- خيار مقارنة اللاعبين -->
+                        <!-- 2️⃣ خيار أفضل اللاعبين والإحصائيات (الجديد) -->
+                        <a href="{% url 'player_leaderboard' %}" 
+                           class="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-plGreen/10 hover:text-plGreen transition">
+                            <span>🌟</span>
+                            <span>أفضل اللاعبين والإحصائيات</span>
+                        </a>
+
+                        <!-- 3️⃣ خيار مقارنة اللاعبين -->
                         <a href="{% url 'compare_players' %}" 
                            class="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-plGreen/10 hover:text-plGreen transition">
                             <span>⚖️</span>
                             <span>مقارنة اللاعبين</span>
                         </a>
 
-                        <!-- خيار الأخبار والجوائز -->
+                        <!-- 4️⃣ خيار الأخبار والجوائز -->
                         <a href="{% url 'news_and_awards' %}" 
                            class="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-plGreen/10 hover:text-plGreen transition">
                             <span>🏆</span>
                             <span>الأخبار والجوائز</span>
                         </a>
 
-                        <!-- خيار لوحة إدخال الإحصائيات للأدمن -->
+                        <!-- 5️⃣ خيار لوحة إدخال الإحصائيات للأدمن -->
                         {% if user.is_staff %}
                         <a href="{% url 'enter_match_stats' %}" 
                            class="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-plPink hover:bg-plPink/10 transition">
@@ -134,7 +141,7 @@
                         </a>
                         {% endif %}
 
-                        <!-- خيار تسجيل الخروج -->
+                        <!-- 6️⃣ خيار تسجيل الخروج -->
                         <form method="POST" action="{% url 'logout' %}" class="block w-full">
                             {% csrf_token %}
                             <button type="submit" 

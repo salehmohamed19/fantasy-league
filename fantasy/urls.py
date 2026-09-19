@@ -37,6 +37,7 @@ urlpatterns = [
     path('news/', views.news_and_awards, name='news_and_awards'),
     path('team/<int:team_id>/activate-chip/<str:chip_code>/', views.activate_chip, name='activate_chip'),
     path('ping/', ping, name='ping'),
+    path('players/leaderboard/', views.player_leaderboard, name='player_leaderboard'),
 
     # المصادقة والحسابات
     path('login/', LoginView.as_view(template_name='fantasy/login.html', redirect_authenticated_user=True), name='login'),

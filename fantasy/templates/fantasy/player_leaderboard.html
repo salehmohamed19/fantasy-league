@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-2 sm:px-4 py-6">
+
+    <!-- الهيدر الرئيسي والعنوان -->
+    <div class="bg-[#240028] rounded-xl p-4 sm:p-6 border border-purple-800/40 shadow-xl mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-purple-800/30 pb-4">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+                    <span>🏆</span> جدول إحصائيات وأفضل لاعبي البطولة
+                </h1>
+                <p class="text-xs sm:text-sm text-gray-400 mt-1">
+                    ترتيب اللاعبين بناءً على إجمالي النقاط، المساهمات، والأداء خلال الموسم
+                </p>
+            </div>
+            
+            <div class="flex items-center gap-2 bg-purple-950/80 px-3 py-2 rounded-lg border border-purple-700/40">
+                <span class="text-xs text-gray-300 font-bold">إجمالي اللاعبين:</span>
+                <span class="text-sm font-black text-plGreen">{{ total_players_count|default:"0" }}</span>
+            </div>
+        </div>
+
+        <!-- أشرطة البحث والفلترة -->
+        <form id="leaderboard-filter-form"
+              hx-get="{% url 'player_leaderboard' %}" 
+              hx-target="#players-table-container" 
+              hx-select="#players-table-container"
+              hx-swap="outerHTML"
+              hx-trigger="change from:select, keyup changed delay:300ms from:input"
+              class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+            
+            <!-- البحث بالاسم -->
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1">ابحث عن لاعب:</label>
+                <input type="text" 
+                       name="search" 
+                       value="{{ request.GET.search|default:'' }}"
+                       placeholder="اسم اللاعب..." 
+                       class="w-full bg-[#1b001e] text-white text-xs font-bold rounded-lg p-2.5 border border-purple-800/60 focus:border-plGreen outline-none transition placeholder-gray-500">
+            </div>
+
+            <!-- الفلترة بالفريق -->
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1">تصفية حسب الفريق:</label>
+                <select name="team" class="w-full bg-[#1b001e] text-white text-xs font-bold rounded-lg p-2.5 border border-purple-800/60 focus:border-plGreen outline-none transition cursor-pointer">
+                    <option value="">جميع الفرق</option>
+                    {% for team in real_teams %}
+                    <option value="{{ team.id }}" {% if request.GET.team|slugify == team.id|slugify %}selected{% endif %}>
+                        {{ team.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- الفلترة بالمركز -->
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1">تصفية حسب المركز:</label>
+                <select name="position" class="w-full bg-[#1b001e] text-white text-xs font-bold rounded-lg p-2.5 border border-purple-800/60 focus:border-plGreen outline-none transition cursor-pointer">
+                    <option value="">جميع المراكز</option>
+                    <option value="GK" {% if request.GET.position == "GK" %}selected{% endif %}>حارس مرمى (GK)</option>
+                    <option value="DEF" {% if request.GET.position == "DEF" %}selected{% endif %}>مدافع (DEF)</option>
+                    <option value="MID" {% if request.GET.position == "MID" %}selected{% endif %}>وسط (MID)</option>
+                    <option value="FWD" {% if request.GET.position == "FWD" %}selected{% endif %}>مهاجم (FWD)</option>
+                </select>
+            </div>
+
+            <!-- الترتيب حسب (Sort By) -->
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1">ترتيب حسب:</label>
+                <select name="sort_by" class="w-full bg-[#1b001e] text-plGreen text-xs font-bold rounded-lg p-2.5 border border-purple-800/60 focus:border-plGreen outline-none transition cursor-pointer">
+                    <option value="-total_points" {% if request.GET.sort_by == "-total_points" or not request.GET.sort_by %}selected{% endif %}>🔥 إجمالي النقاط (الأعلى)</option>
+                    <option value="-goals" {% if request.GET.sort_by == "-goals" %}selected{% endif %}>⚽ الأهداف المصجلة</option>
+                    <option value="-assists" {% if request.GET.sort_by == "-assists" %}selected{% endif %}>🎯 التمريرات الحاسمة</option>
+                    <option value="-clean_sheets" {% if request.GET.sort_by == "-clean_sheets" %}selected{% endif %}>🛡️ الشباك النظيفة (Clean Sheet)</option>
+                    <option value="-price" {% if request.GET.sort_by == "-price" %}selected{% endif %}>💰 السعر الأعلى</option>
+                    <option value="price" {% if request.GET.sort_by == "price" %}selected{% endif %}>🏷️ السعر الأقل</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- جدول عرض اللاعبين -->
+    <div id="players-table-container" class="bg-[#240028] rounded-xl border border-purple-800/40 shadow-xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-gray-200">
+                <thead class="bg-[#1b001e] text-xs text-gray-400 font-extrabold border-b border-purple-800/50 uppercase">
+                    <tr>
+                        <th scope="col" class="py-3.5 px-3 text-center">الترتيب</th>
+                        <th scope="col" class="py-3.5 px-4">اللاعب</th>
+                        <th scope="col" class="py-3.5 px-3 text-center">المركز</th>
+                        <th scope="col" class="py-3.5 px-3 text-center">السعر</th>
+                        <th scope="col" class="py-3.5 px-3 text-center">⚽ اهداف</th>
+                        <th scope="col" class="py-3.5 px-3 text-center">🎯 صناعة</th>
+                        <th scope="col" class="py-3.5 px-3 text-center hidden md:table-cell">🛡️ نظافة شباك</th>
+                        <th scope="col" class="py-3.5 px-3 text-center hidden md:table-cell">🟨/🟥 إنذارات</th>
+                        <th scope="col" class="py-3.5 px-4 text-center bg-purple-900/40 text-plGreen">إجمالي النقاط</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-purple-900/30 text-xs font-bold">
+                    {% for player in players %}
+                    <tr class="hover:bg-purple-900/20 transition cursor-pointer"
+                        hx-get="{% url 'player_detail_modal' player.id %}"
+                        hx-target="#player-modal-content"
+                        data-bs-toggle="modal"
+                        data-bs-target="#playerModal">
+                        
+                        <!-- الترتيب -->
+                        <td class="py-3 px-3 text-center font-black">
+                            {% if forloop.counter == 1 %}
+                                <span class="w-6 h-6 rounded-full bg-yellow-500 text-black flex items-center justify-center mx-auto shadow-md">🥇</span>
+                            {% elif forloop.counter == 2 %}
+                                <span class="w-6 h-6 rounded-full bg-gray-300 text-black flex items-center justify-center mx-auto shadow-md">🥈</span>
+                            {% elif forloop.counter == 3 %}
+                                <span class="w-6 h-6 rounded-full bg-amber-700 text-white flex items-center justify-center mx-auto shadow-md">🥉</span>
+                            {% else %}
+                                <span class="text-gray-400">#{{ forloop.counter }}</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- اسم اللاعب والنادي -->
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-gray-900 border border-purple-600/50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {% if player.team.logo %}
+                                        <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain p-0.5">
+                                    {% else %}
+                                        <span class="text-[9px] font-bold text-gray-300">{{ player.position }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="truncate">
+                                    <p class="font-extrabold text-white text-xs sm:text-sm hover:text-plGreen transition truncate">{{ player.name }}</p>
+                                    <p class="text-[10px] text-gray-400 font-normal">{{ player.team.name }}</p>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- المركز -->
+                        <td class="py-3 px-3 text-center">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-black border
+                                {% if player.position == 'GK' %}bg-amber-500/10 text-amber-400 border-amber-500/30
+                                {% elif player.position == 'DEF' %}bg-blue-500/10 text-blue-400 border-blue-500/30
+                                {% elif player.position == 'MID' %}bg-emerald-500/10 text-emerald-400 border-emerald-500/30
+                                {% else %}bg-rose-500/10 text-rose-400 border-rose-500/30{% endif %}">
+                                {{ player.main_category|default:player.position }}
+                            </span>
+                        </td>
+
+                        <!-- السعر -->
+                        <td class="py-3 px-3 text-center text-yellow-400 font-black">
+                            {{ player.price }}M
+                        </td>
+
+                        <!-- الأهداف -->
+                        <td class="py-3 px-3 text-center text-gray-200">
+                            {{ player.goals|default:"0" }}
+                        </td>
+
+                        <!-- التمريرات الحاسمة -->
+                        <td class="py-3 px-3 text-center text-gray-200">
+                            {{ player.assists|default:"0" }}
+                        </td>
+
+                        <!-- الشباك النظيفة -->
+                        <td class="py-3 px-3 text-center hidden md:table-cell text-gray-300">
+                            {{ player.clean_sheets|default:"0" }}
+                        </td>
+
+                        <!-- الكروت -->
+                        <td class="py-3 px-3 text-center hidden md:table-cell">
+                            <span class="text-yellow-400">{{ player.yellow_cards|default:"0" }}🟨</span>
+                            <span class="text-gray-500 mx-1">/</span>
+                            <span class="text-red-500">{{ player.red_cards|default:"0" }}🟥</span>
+                        </td>
+
+                        <!-- النقاط الإجمالية -->
+                        <td class="py-3 px-4 text-center bg-purple-900/30 font-black text-sm text-plGreen">
+                            {{ player.total_points|default:"0" }} <span class="text-[9px] text-gray-400 font-normal">pts</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-12 text-gray-400 font-bold">
+                            🚫 لم يتم العثور على أي لاعبين يطابقون خيارات البحث الحالية.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- الترقيم والتنقل بين الصفحات (Pagination) -->
+        {% if players.has_other_pages %}
+        <div class="p-4 bg-[#1b001e] border-t border-purple-800/40 flex items-center justify-between text-xs font-bold">
+            <span class="text-gray-400">
+                عرض الصفحات {{ players.number }} من {{ players.paginator.num_pages }}
+            </span>
+            <div class="flex items-center gap-1">
+                {% if players.has_previous %}
+                <button hx-get="?page={{ players.previous_page_number }}&search={{ request.GET.search }}&team={{ request.GET.team }}&position={{ request.GET.position }}&sort_by={{ request.GET.sort_by }}"
+                        hx-target="#players-table-container"
+                        hx-select="#players-table-container"
+                        hx-swap="outerHTML"
+                        class="px-3 py-1.5 bg-purple-900/60 hover:bg-purple-800 text-white rounded-lg transition">
+                    السابق
+                </button>
+                {% endif %}
+
+                {% if players.has_next %}
+                <button hx-get="?page={{ players.next_page_number }}&search={{ request.GET.search }}&team={{ request.GET.team }}&position={{ request.GET.position }}&sort_by={{ request.GET.sort_by }}"
+                        hx-target="#players-table-container"
+                        hx-select="#players-table-container"
+                        hx-swap="outerHTML"
+                        class="px-3 py-1.5 bg-plGreen hover:bg-emerald-400 text-plDark font-black rounded-lg transition">
+                    التالي
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

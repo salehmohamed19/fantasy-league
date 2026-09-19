@@ -359,6 +359,82 @@ def squad_builder(request):
 # 3. عمليات التشكيلة (إضافة، حذف، حفظ، تبديل، كابتن، نائب كابتن)
 # ==========================================
 
+from django.shortcuts import get_object_or_404, redirect
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django_ratelimit.decorators import ratelimit
+
+def render_htmx_squad_response(request, user_team, active_league, current_gameweek):
+    """
+    دالة مساعدة موحدة لإرجاع استجابة HTMX عند إضافة أو حذف لاعب
+    تقوم بتحديث التشكيلة والدكة والسوق والميزانية بنقرة واحدة بدون Refresh
+    """
+    context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
+    
+    # 1. القالب الرئيسي للتشكيلة والدكة والكابتن (سواء pitch.html أو squad_6.html partial)
+    squad_html = render_to_string('fantasy/partials/pitch.html', context, request=request)
+    
+    # 2. جزئية سوق اللاعبين المُحدثة (لتحديث أزرار الشراء/الحذف وإخفاء/إظهار اللاعبين)
+    market_html = render_to_string('fantasy/partials/player_list.html', context, request=request)
+    
+    # 3. دمج الاستجابات باستخدام Out-Of-Band Swaps بالتطابق مع IDs الموجودة في squad_6.html
+    combined_response = f"""
+    {squad_html}
+    <div id="player-market-list" hx-swap-oob="true">
+        {market_html}
+    </div>
+    <span id="user-budget" hx-swap-oob="true">{user_team.budget}M</span>
+    """
+    return HttpResponse(combined_response)
+
+
+@login_required
+@ratelimit(key='ip', rate='20/m', block=True)
+def remove_player_from_squad(request, player_id):
+    player = get_object_or_404(Player, id=player_id)
+    active_league = player.team.league
+
+    current_gameweek, lock_error = check_gameweek_lock(active_league)
+    if lock_error or not current_gameweek or not getattr(current_gameweek, 'is_open', False):
+        if request.headers.get('HX-Request'):
+            return HttpResponse("التعديل مغلق لهذه الجولة حالياً!", status=400)
+        messages.error(request, "التعديل مغلق لهذه الجولة حالياً!")
+        return redirect(f'/squad-builder/?league_id={active_league.id}')
+
+    user_team = get_object_or_404(UserFantasyTeam, user=request.user, league=active_league)
+    squad = UserSquad.objects.filter(user_team=user_team, gameweek=current_gameweek).first()
+
+    if squad:
+        removed = False
+        if squad.starting_players.filter(id=player.id).exists():
+            squad.starting_players.remove(player)
+            removed = True
+        elif squad.substitutes.filter(id=player.id).exists():
+            squad.substitutes.remove(player)
+            removed = True
+
+        if removed:
+            # تعديل الكابتن والنائب عند حذف أحدهما
+            if squad.captain == player:
+                squad.captain = squad.starting_players.first()
+            if squad.vice_captain == player:
+                squad.vice_captain = None
+
+            squad.is_saved = False
+            squad.save()
+
+            # إعادة سعر اللاعب للميزانية
+            user_team.budget += player.price
+            user_team.save()
+
+    if request.headers.get('HX-Request'):
+        return render_htmx_squad_response(request, user_team, active_league, current_gameweek)
+
+    return redirect(f'/squad-builder/?league_id={active_league.id}')
+
+
 @login_required
 @ratelimit(key='ip', rate='20/m', block=True)
 def add_player_to_squad(request, player_id):
@@ -379,6 +455,7 @@ def add_player_to_squad(request, player_id):
     current_subs = list(squad.substitutes.all())
     all_current_players = current_starters + current_subs
 
+    # القيود والشروط
     if player in all_current_players:
         if request.headers.get('HX-Request'):
             return HttpResponse("اللاعب موجود بالفعل في تشكيلتك!", status=400)
@@ -404,6 +481,7 @@ def add_player_to_squad(request, player_id):
         messages.error(request, "الميزانية المتبقية لا تكفي لشراء هذا اللاعب!")
         return redirect(f'/squad-builder/?league_id={active_league.id}')
 
+    # إضافة اللاعب (أساسي أو احتياطي)
     if len(current_starters) < 6:
         squad.starting_players.add(player)
         if not squad.captain:
@@ -420,14 +498,7 @@ def add_player_to_squad(request, player_id):
     user_team.save()
 
     if request.headers.get('HX-Request'):
-        context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
-        # إرجاع الملعب + تحديث الميزانية والسوق كـ Out-of-Band (OOB) لتوفير حجم البيانات
-        pitch_html = render_to_string('fantasy/partials/pitch.html', context, request=request)
-        market_html = render_to_string('fantasy/partials/player_list.html', context, request=request)
-        header_stats_html = f'<span id="user-budget" hx-swap-oob="true">{user_team.budget} M</span>'
-        
-        combined_response = f'{pitch_html}\n<div id="market-list" hx-swap-oob="true">{market_html}</div>\n{header_stats_html}'
-        return HttpResponse(combined_response)
+        return render_htmx_squad_response(request, user_team, active_league, current_gameweek)
 
     return redirect(f'/squad-builder/?league_id={active_league.id}')
 
@@ -486,53 +557,6 @@ def save_squad(request):
         return redirect(f'/squad-builder/?league_id={user_team.league.id}')
 
     return redirect('squad_builder')
-
-
-@login_required
-@ratelimit(key='ip', rate='20/m', block=True)
-def remove_player_from_squad(request, player_id):
-    player = get_object_or_404(Player, id=player_id)
-    active_league = player.team.league
-
-    current_gameweek, lock_error = check_gameweek_lock(active_league)
-    if lock_error or not current_gameweek or not getattr(current_gameweek, 'is_open', False):
-        if request.headers.get('HX-Request'):
-            return HttpResponse("التعديل مغلق لهذه الجولة حالياً!", status=400)
-        messages.error(request, "التعديل مغلق لهذه الجولة حالياً!")
-        return redirect(f'/squad-builder/?league_id={active_league.id}')
-
-    user_team = get_object_or_404(UserFantasyTeam, user=request.user, league=active_league)
-    squad = UserSquad.objects.filter(user_team=user_team, gameweek=current_gameweek).first()
-
-    if squad:
-        removed = False
-        if squad.starting_players.filter(id=player.id).exists():
-            squad.starting_players.remove(player)
-            removed = True
-        elif squad.substitutes.filter(id=player.id).exists():
-            squad.substitutes.remove(player)
-            removed = True
-
-        if removed:
-            if squad.captain == player:
-                squad.captain = squad.starting_players.first()
-            if squad.vice_captain == player:
-                squad.vice_captain = None
-
-            squad.save()
-
-            user_team.budget += player.price
-            user_team.save()
-
-    if request.headers.get('HX-Request'):
-        context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
-        pitch_html = render_to_string('fantasy/partials/pitch.html', context, request=request)
-        market_html = render_to_string('fantasy/partials/player_list.html', context, request=request)
-        header_stats_html = f'<span id="user-budget" hx-swap-oob="true">{user_team.budget} M</span>'
-        
-        return HttpResponse(f'{pitch_html}\n<div id="market-list" hx-swap-oob="true">{market_html}</div>\n{header_stats_html}')
-
-    return redirect(f'/squad-builder/?league_id={active_league.id}')
 
 @login_required
 def set_captain(request, player_id):
@@ -1479,6 +1503,54 @@ def activate_chip(request, team_id, chip_code):
         messages.success(request, f"تم تفعيل خاصية {chip_name} بنجاح للجولة {current_gw.number}! 🚀")
 
     return redirect('squad_builder')
+
+from django.shortcuts import render
+from django.core.paginator import Paginator
+from django.db.models import Q
+from .models import Player, RealTeam
+
+def player_leaderboard(request):
+    players = Player.objects.all().select_related('team')
+
+    # 1. البحث باسم اللاعب
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        players = players.filter(name__icontains=search_query)
+
+    # 2. الفلترة بالفريق
+    team_id = request.GET.get('team', '')
+    if team_id:
+        players = players.filter(team_id=team_id)
+
+    # 3. الفلترة بالمركز
+    position = request.GET.get('position', '')
+    if position:
+        players = players.filter(Q(position=position) | Q(main_category=position))
+
+    # 4. الترتيب (الافتراضي: أعلى إجمالي نقاط)
+    sort_by = request.GET.get('sort_by', '-total_points')
+    allowed_sorts = ['-total_points', '-goals', '-assists', '-clean_sheets', '-price', 'price']
+    if sort_by in allowed_sorts:
+        players = players.order_by(sort_by, '-total_points')
+    else:
+        players = players.order_by('-total_points')
+
+    total_players_count = players.count()
+
+    # 5. التقسيم لصفحات (Pagination - 20 لاعب بكل صفحة)
+    paginator = Paginator(players, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    real_teams = RealTeam.objects.all()
+
+    context = {
+        'players': page_obj,
+        'real_teams': real_teams,
+        'total_players_count': total_players_count,
+    }
+
+    return render(request, 'fantasy/player_leaderboard.html', context)
 
 
 def ping(request):
