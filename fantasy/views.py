@@ -1503,50 +1503,75 @@ def activate_chip(request, team_id, chip_code):
 
     return redirect('squad_builder')
 
-from django.db.models import Sum, Value
-from django.db.models.functions import Coalesce
 from django.shortcuts import render
+from django.db.models import Sum, Value, IntegerField
+from django.db.models.functions import Coalesce
 from django.core.paginator import Paginator
 from .models import Player, RealTeam
 
 def player_leaderboard(request):
-    # استخدام Coalesce يضمن إرجاع 0 بدلاً من None إذا لم تكن هناك نقاط أو إحصائيات بعد
+    # استخدام gameweek_stats مع أسماء الحقول الصحيحة من models.py
     players_list = Player.objects.annotate(
-        total_points=Coalesce(Sum('stats__points'), Value(0)),
-        goals=Coalesce(Sum('stats__goals'), Value(0)),
-        assists=Coalesce(Sum('stats__assists'), Value(0)),
-        clean_sheets=Coalesce(Sum('stats__clean_sheets'), Value(0)),
-        yellow_cards=Coalesce(Sum('stats__yellow_cards'), Value(0)),
-        red_cards=Coalesce(Sum('stats__red_cards'), Value(0)),
+        total_points=Coalesce(Sum('gameweek_stats__points'), Value(0), output_field=IntegerField()),
+        goals=Coalesce(Sum('gameweek_stats__goals'), Value(0), output_field=IntegerField()),
+        assists=Coalesce(Sum('gameweek_stats__assists'), Value(0), output_field=IntegerField()),
+        clean_sheets=Coalesce(Sum('gameweek_stats__clean_sheet'), Value(0), output_field=IntegerField()),
+        yellow_cards=Coalesce(Sum('gameweek_stats__yellow_card'), Value(0), output_field=IntegerField()),
+        red_cards=Coalesce(Sum('gameweek_stats__red_card'), Value(0), output_field=IntegerField()),
     )
 
-    # الفلترة والبحث
-    search_query = request.GET.get('search', '')
+    # 1. البحث بالاسم
+    search_query = request.GET.get('search', '').strip()
     if search_query:
         players_list = players_list.filter(name__icontains=search_query)
 
+    # 2. التصفية حسب الفريق
     team_id = request.GET.get('team')
-    if team_id:
-        players_list = players_list.filter(team_id=team_id)
+    if team_id and team_id.isdigit():
+        players_list = players_list.filter(team_id=int(team_id))
 
+    # 3. التصفية حسب المركز (سواء التفصيلي أو العام)
     position = request.GET.get('position')
     if position:
-        players_list = players_list.filter(position=position)
+        if position == 'GK':
+            players_list = players_list.filter(position='GK')
+        elif position == 'DEF':
+            players_list = players_list.filter(position__in=['CB', 'RB', 'LB', 'RWB', 'LWB'])
+        elif position == 'MID':
+            players_list = players_list.filter(position__in=['CDM', 'CM', 'CAM', 'RM', 'LM', 'RW', 'LW'])
+        elif position == 'FWD':
+            players_list = players_list.filter(position__in=['ST', 'CF'])
+        else:
+            players_list = players_list.filter(position=position)
 
-    # الترتيب
+    # 4. الترتيب الآمن
     sort_by = request.GET.get('sort_by', '-total_points')
-    players_list = players_list.order_by(sort_by)
+    allowed_sorts = [
+        '-total_points', 'total_points',
+        '-goals', '-assists', '-clean_sheets',
+        '-price', 'price'
+    ]
+    if sort_by not in allowed_sorts:
+        sort_by = '-total_points'
 
-    # Paginator
+    # إضافة id لضمان ثبات نتائج الـ Pagination
+    players_list = players_list.order_by(sort_by, 'id')
+
+    # 5. الترقيم (Paginator)
     paginator = Paginator(players_list, 25)
-    page_number = request.GET.get('page')
-    players = paginator.get_page(page_number)
+    page_number = request.GET.get('page', 1)
+    
+    try:
+        players = paginator.get_page(page_number)
+    except Exception:
+        players = paginator.get_page(1)
 
     context = {
         'players': players,
         'real_teams': RealTeam.objects.all(),
         'total_players_count': players_list.count(),
     }
+
     return render(request, 'player_leaderboard.html', context)
 
 def ping(request):
