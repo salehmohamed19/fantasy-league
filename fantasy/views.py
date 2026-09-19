@@ -373,13 +373,13 @@ def render_htmx_squad_response(request, user_team, active_league, current_gamewe
     """
     context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
     
-    # 1. القالب الرئيسي للتشكيلة والدكة والكابتن (سواء pitch.html أو squad_6.html partial)
-    squad_html = render_to_string('fantasy/partials/pitch.html', context, request=request)
+    # 1. إرجاع قالب squad.html الرئيسي (سيتم اقتطاع #squad-container منه تلقائياً عبر hx-select في الواجهة)
+    squad_html = render_to_string('fantasy/squad.html', context, request=request)
     
-    # 2. جزئية سوق اللاعبين المُحدثة (لتحديث أزرار الشراء/الحذف وإخفاء/إظهار اللاعبين)
+    # 2. جزئية سوق اللاعبين المُحدثة
     market_html = render_to_string('fantasy/partials/player_list.html', context, request=request)
     
-    # 3. دمج الاستجابات باستخدام Out-Of-Band Swaps بالتطابق مع IDs الموجودة في squad_6.html
+    # 3. دمج الاستجابات باستخدام Out-Of-Band (OOB) Swaps
     combined_response = f"""
     {squad_html}
     <div id="player-market-list" hx-swap-oob="true">

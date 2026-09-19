@@ -60,8 +60,8 @@
                 {% else %}
                     <button hx-post="{% url 'add_player_to_squad' player.id %}"
                             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                            hx-target="#squad-builder-container"
-                            hx-select="#squad-builder-container"
+                            hx-target="#squad-container"
+                            hx-select="#squad-container"
                             hx-swap="outerHTML"
                             class="w-full bg-plGreen hover:bg-emerald-400 active:scale-95 text-plDark font-black text-xs px-2 py-1 rounded shadow transition cursor-pointer whitespace-nowrap">
                         + شراء
