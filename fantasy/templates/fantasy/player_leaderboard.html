@@ -27,7 +27,7 @@
               hx-target="#players-table-container" 
               hx-select="#players-table-container"
               hx-swap="outerHTML"
-              hx-trigger="change from:select, keyup changed delay:300ms from:input"
+              hx-trigger="change from:select, keyup changed delay:500ms from:input"
               class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-4">
             
             <!-- البحث بالاسم -->
@@ -70,7 +70,7 @@
                 <label class="block text-xs font-bold text-gray-300 mb-1">ترتيب حسب:</label>
                 <select name="sort_by" class="w-full bg-[#1b001e] text-plGreen text-xs font-bold rounded-lg p-2.5 border border-purple-800/60 focus:border-plGreen outline-none transition cursor-pointer">
                     <option value="-total_points" {% if request.GET.sort_by == "-total_points" or not request.GET.sort_by %}selected{% endif %}>🔥 إجمالي النقاط (الأعلى)</option>
-                    <option value="-goals" {% if request.GET.sort_by == "-goals" %}selected{% endif %}>⚽ الأهداف المصجلة</option>
+                    <option value="-goals" {% if request.GET.sort_by == "-goals" %}selected{% endif %}>⚽ الأهداف المسجلة</option>
                     <option value="-assists" {% if request.GET.sort_by == "-assists" %}selected{% endif %}>🎯 التمريرات الحاسمة</option>
                     <option value="-clean_sheets" {% if request.GET.sort_by == "-clean_sheets" %}selected{% endif %}>🛡️ الشباك النظيفة (Clean Sheet)</option>
                     <option value="-price" {% if request.GET.sort_by == "-price" %}selected{% endif %}>💰 السعر الأعلى</option>
@@ -81,7 +81,7 @@
     </div>
 
     <!-- جدول عرض اللاعبين -->
-    <div id="players-table-container" class="bg-[#240028] rounded-xl border border-purple-800/40 shadow-xl overflow-hidden">
+    <div id="players-table-container" class="bg-[#240028] rounded-xl border border-purple-800/40 shadow-xl overflow-hidden relative">
         <div class="overflow-x-auto">
             <table class="w-full text-right text-gray-200">
                 <thead class="bg-[#1b001e] text-xs text-gray-400 font-extrabold border-b border-purple-800/50 uppercase">
@@ -197,7 +197,8 @@
             </span>
             <div class="flex items-center gap-1">
                 {% if players.has_previous %}
-                <button hx-get="?page={{ players.previous_page_number }}&search={{ request.GET.search }}&team={{ request.GET.team }}&position={{ request.GET.position }}&sort_by={{ request.GET.sort_by }}"
+                <button hx-get="?page={{ players.previous_page_number }}"
+                        hx-include="#leaderboard-filter-form"
                         hx-target="#players-table-container"
                         hx-select="#players-table-container"
                         hx-swap="outerHTML"
@@ -207,7 +208,8 @@
                 {% endif %}
 
                 {% if players.has_next %}
-                <button hx-get="?page={{ players.next_page_number }}&search={{ request.GET.search }}&team={{ request.GET.team }}&position={{ request.GET.position }}&sort_by={{ request.GET.sort_by }}"
+                <button hx-get="?page={{ players.next_page_number }}"
+                        hx-include="#leaderboard-filter-form"
                         hx-target="#players-table-container"
                         hx-select="#players-table-container"
                         hx-swap="outerHTML"
