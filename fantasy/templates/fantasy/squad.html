@@ -228,7 +228,7 @@
         </div>
         {% endif %}
 
-        <!-- ⚡ قسم الخواص التكتيكية (Chips) الجديد -->
+        <!-- ⚡ قسم الخواص التكتيكية (Chips) -->
         {% if user_team and squad %}
         <div class="w-full bg-[#240028] p-3 sm:p-4 my-2 border-x-2 border-purple-800 shadow-xl">
             <div class="flex items-center justify-between mb-3">
@@ -579,7 +579,7 @@
                     <label class="block text-[11px] font-bold text-yellow-300 mb-1">
                         🟡 الكابتن الرئيسي (x2):
                     </label>
-                    <select onchange="if(this.value) { htmx.ajax('POST', this.value, {headers: {'X-CSRFToken': '{{ csrf_token }}'}, target: '#squad-builder-container', select: '#squad-builder-container', swap: 'outerHTML scroll:keep'}); }"
+                    <select onchange="if(this.value) { htmx.ajax('POST', this.value, {headers: {'X-CSRFToken': '{{ csrf_token }}'}, target: '#squad-builder-container', select: '#squad-builder-container', swap: 'outerHTML'}); }"
                             class="w-full bg-gray-900 text-white text-xs font-bold rounded-lg p-2 border border-yellow-500/50 focus:border-yellow-400 outline-none transition cursor-pointer"
                             {% if not gameweek or not gameweek.is_open %}disabled{% endif %}>
                         <option value="" disabled {% if not squad.captain %}selected{% endif %}>اختر الكابتن...</option>
@@ -595,7 +595,7 @@
                     <label class="block text-[11px] font-bold text-sky-300 mb-1">
                         🔵 الكابتن البديل (Vice):
                     </label>
-                    <select onchange="if(this.value) { htmx.ajax('POST', this.value, {headers: {'X-CSRFToken': '{{ csrf_token }}'}, target: '#squad-builder-container', select: '#squad-builder-container', swap: 'outerHTML scroll:keep'}); }"
+                    <select onchange="if(this.value) { htmx.ajax('POST', this.value, {headers: {'X-CSRFToken': '{{ csrf_token }}'}, target: '#squad-builder-container', select: '#squad-builder-container', swap: 'outerHTML'}); }"
                             class="w-full bg-gray-900 text-white text-xs font-bold rounded-lg p-2 border border-sky-500/50 focus:border-sky-400 outline-none transition cursor-pointer"
                             {% if not gameweek or not gameweek.is_open %}disabled{% endif %}>
                         <option value="" disabled {% if not squad.vice_captain %}selected{% endif %}>اختر الكابتن البديل...</option>
@@ -705,7 +705,7 @@
             </div>
         </div>
 
-        <!-- 📊 إحصائيات الموسم (GRID CARDS) -->
+        <!-- 📊 إحصائيات الموسم -->
         <div class="w-full bg-[#240028] mt-4 p-4 rounded-xl border border-purple-900/40 shadow-lg">
             <h3 class="text-xs font-black text-gray-200 mb-3 text-right uppercase tracking-wider border-b border-purple-900/30 pb-2">
                 📊 إحصائيات الموسم
@@ -801,7 +801,7 @@
 
 </div>
 
-<!-- حاوية المودال المنبثقة الحاوية (مُعدلة لتناسب Tailwind والخلفية الداكنة) -->
+<!-- حاوية المودال المنبثقة -->
 <div class="modal fade" id="playerModal" tabindex="-1" aria-labelledby="playerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-[#1e1b4b] border border-purple-800/50 rounded-2xl shadow-2xl text-white overflow-hidden p-0" id="player-modal-content">

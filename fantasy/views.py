@@ -1474,9 +1474,6 @@ def news_and_awards(request):
 @login_required
 @ratelimit(key='ip', rate='15/m', block=True)
 def activate_chip(request, team_id, chip_code):
-    """
-    دالة تفعيل الخاصية التكتيكية (Triple Captain, Bench Boost, Wildcard, Free Hit)
-    """
     user_team = get_object_or_404(UserFantasyTeam, id=team_id, user=request.user)
     
     current_gw = Gameweek.objects.filter(
@@ -1493,11 +1490,17 @@ def activate_chip(request, team_id, chip_code):
         gameweek=current_gw
     )
 
+    # التحقق من الاستخدام السالم في أي جولة سابقة للمستخدم
+    already_used_in_squads = UserSquad.objects.filter(
+        user_team=user_team,
+        active_chip=chip_code
+    ).exclude(gameweek=current_gw).exists()
+
     chip_verify_map = {
-        'TC': (user_team.triple_captain_used, 'Triple Captain (x3)'),
-        'BB': (user_team.bench_boost_used, 'Bench Boost'),
-        'WC': (user_team.wildcard_used, 'Wildcard'),
-        'FH': (user_team.free_hit_used, 'Free Hit'),
+        'TC': (user_team.triple_captain_used or already_used_in_squads, 'Triple Captain (x3)'),
+        'BB': (user_team.bench_boost_used or already_used_in_squads, 'Bench Boost'),
+        'WC': (user_team.wildcard_used or already_used_in_squads, 'Wildcard'),
+        'FH': (user_team.free_hit_used or already_used_in_squads, 'Free Hit'),
     }
 
     if chip_code not in chip_verify_map:
@@ -1520,6 +1523,7 @@ def activate_chip(request, team_id, chip_code):
         messages.success(request, f"تم تفعيل خاصية {chip_name} بنجاح للجولة {current_gw.number}! 🚀")
 
     return redirect('squad_builder')
+
 
 
 def ping(request):
