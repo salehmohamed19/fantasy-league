@@ -141,11 +141,14 @@ def update_player_prices_for_gameweek(gameweek):
 
 def get_squad_builder_context(request, user_team, active_league, current_gameweek):
     """
-    دالة محسّنة وبسريعة لبناء Context التشكيلة بدون استعلامات N+1
+    دالة عالية الأداء ومحسّنة لبناء Context التشكيلة واستجابة سريعة جداً.
     """
+    # 1. جلب التشكيلة الأساسية والبدلاء باستعلام واحد مجمع مع الفرق والرموز
+    player_queryset = Player.objects.select_related('team')
+    
     squad = UserSquad.objects.select_related('captain', 'vice_captain').prefetch_related(
-        Prefetch('starting_players', queryset=Player.objects.select_related('team')),
-        Prefetch('substitutes', queryset=Player.objects.select_related('team'))
+        Prefetch('starting_players', queryset=player_queryset),
+        Prefetch('substitutes', queryset=player_queryset)
     ).filter(user_team=user_team, gameweek=current_gameweek).first()
 
     if not squad:
@@ -162,61 +165,56 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
             squad.vice_captain = prev_squad.vice_captain
             squad.save()
 
-    all_squad_players = list(squad.starting_players.all()) + list(squad.substitutes.all())
+    all_starters = list(squad.starting_players.all())
+    all_subs = list(squad.substitutes.all())
+    all_squad_players = all_starters + all_subs
+    squad_player_ids = {p.id for p in all_squad_players}
 
-    # جلب جميع الإحصائيات باستعلامين أساسيين فقط
-    stats = PlayerGameweekStat.objects.filter(gameweek__league=active_league, gameweek__is_published=True)
-    player_stats_map = {stat.player_id: stat for stat in stats if stat.gameweek_id == current_gameweek.id}
-
-    total_stats = stats.values('player_id').annotate(total=Sum('points'))
-    player_total_points = {stat['player_id']: stat['total'] for stat in total_stats}
+    # 2. جلب إحصائيات الجولة الحالية بطلب واحد محدد فقط (عدم جلب إحصائيات كل الدوري)
+    squad_ids_list = [p.id for p in all_squad_players]
+    current_stats = PlayerGameweekStat.objects.filter(
+        gameweek=current_gameweek,
+        player_id__in=squad_ids_list
+    )
+    player_stats_map = {stat.player_id: stat for stat in current_stats}
 
     def attach_status_info(player):
         stat = player_stats_map.get(player.id)
         player.yellow_card = stat.yellow_card if stat else False
         player.red_card = stat.red_card if stat else False
-        player.total_yellows = getattr(player, 'total_yellow_cards', 0)
-        player.total_reds = getattr(player, 'total_red_cards', 0)
         player.is_suspended_now = player.is_suspended and getattr(player, 'suspended_matches_left', 0) > 0
-        player.total_pts = player_total_points.get(player.id, 0)
+        player.stat_points = stat.points if stat else 0
 
     starters_list = []
     gk_list, def_list, mid_list, fwd_list = [], [], [], []
 
-    for player in squad.starting_players.all():
-        stat = player_stats_map.get(player.id)
-        pts = stat.points if stat else 0
-        
-        multiplier = 3 if (getattr(squad, 'active_chip', 'NONE') == 'TC' and squad.captain_id == player.id) else (2 if squad.captain_id == player.id else 1)
-        player.current_pts = pts * multiplier
-        
+    for player in all_starters:
         attach_status_info(player)
+        multiplier = 3 if (getattr(squad, 'active_chip', 'NONE') == 'TC' and squad.captain_id == player.id) else (2 if squad.captain_id == player.id else 1)
+        player.current_pts = player.stat_points * multiplier
         starters_list.append(player)
 
-        pos = getattr(player, 'main_category', getattr(player, 'position', '')).upper()
+        pos = (player.main_category or player.position or '').upper()
         if pos == 'GK':
             gk_list.append(player)
-        elif pos == 'DEF':
+        elif pos in ['DEF', 'CB', 'RB', 'LB', 'RWB', 'LWB']:
             def_list.append(player)
-        elif pos == 'MID':
+        elif pos in ['MID', 'CDM', 'CM', 'CAM', 'RM', 'LM', 'RW', 'LW']:
             mid_list.append(player)
-        elif pos == 'FWD':
-            fwd_list.append(player)
         else:
-            mid_list.append(player)
+            fwd_list.append(player)
 
     subs_list = []
-    for player in squad.substitutes.all():
-        stat = player_stats_map.get(player.id)
-        player.current_pts = stat.points if stat else 0
+    for player in all_subs:
         attach_status_info(player)
+        player.current_pts = player.stat_points
         subs_list.append(player)
 
-    real_teams = RealTeam.objects.filter(league=active_league)
-    squad_player_ids = set([p.id for p in all_squad_players])
+    # 3. جلب الفرق وسوق اللاعبين المفصل بطلب محدد ونظيف
+    real_teams = RealTeam.objects.filter(league=active_league).only('id', 'name', 'logo')
 
     team_counts = Counter([p.team_id for p in all_squad_players])
-    disabled_team_ids = set([team_id for team_id, count in team_counts.items() if count >= 2])
+    disabled_team_ids = {team_id for team_id, count in team_counts.items() if count >= 2}
 
     selected_team_id = request.GET.get('team', '').strip()
     selected_position = request.GET.get('position', '').strip()
@@ -236,17 +234,17 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
         }
         if selected_position in pos_map:
             available_players = available_players.filter(position__in=pos_map[selected_position])
-        else:
-            available_players = available_players.filter(position=selected_position)
 
     if selected_team_id and selected_team_id.isdigit():
         available_players = available_players.filter(team_id=int(selected_team_id))
 
-    for player in available_players:
-        attach_status_info(player)
-
     deadline = getattr(current_gameweek, 'deadline', None)
     time_remaining = (deadline - timezone.now()) if deadline and deadline > timezone.now() else None
+
+    # حساب إحصائيات الموسم بشكل محدد لتخفيف التحميل
+    season_stats = UserSquad.objects.filter(user_team=user_team, gameweek__is_published=True).aggregate(
+        total_points=Sum('points_earned')
+    )
 
     return {
         'user_team': user_team,
@@ -262,14 +260,14 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
         'mid_list': mid_list,
         'fwd_list': fwd_list,
         'real_teams': real_teams,
-        'available_players': available_players,
+        'available_players': available_players[:40], # تحديد حد أعلى للاستجابة السريعة
         'disabled_team_ids': disabled_team_ids,
         'squad_player_ids': squad_player_ids,
         'selected_team_id': selected_team_id,
         'selected_position': selected_position,
         'search_query': search_query,
+        'season_stats': season_stats,
     }
-
 
 # ==========================================
 # 1. مركز البطولات والانضمام (Leagues Hub)
@@ -318,6 +316,7 @@ def join_league(request, league_id=None):
 # ==========================================
 # 2. بناء التشكيلة (Squad Builder)
 # ==========================================
+from django.template.loader import render_to_string
 
 @login_required
 @ratelimit(key='ip', rate='30/m', block=True)
@@ -350,11 +349,11 @@ def squad_builder(request):
 
     context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
 
-    if request.headers.get('HX-Request'):
+    # طلب HTMX لتصفية أو بحث سوق اللاعبين فقط (إرجاع قائمة اللاعبين دون القوائم الجانبية)
+    if request.headers.get('HX-Request') and request.GET.get('target') == 'market':
         return render(request, 'fantasy/partials/player_list.html', context)
 
     return render(request, 'fantasy/squad.html', context)
-
 
 # ==========================================
 # 3. عمليات التشكيلة (إضافة، حذف، حفظ، تبديل، كابتن، نائب كابتن)
@@ -422,7 +421,13 @@ def add_player_to_squad(request, player_id):
 
     if request.headers.get('HX-Request'):
         context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
-        return render(request, 'fantasy/squad.html', context)
+        # إرجاع الملعب + تحديث الميزانية والسوق كـ Out-of-Band (OOB) لتوفير حجم البيانات
+        pitch_html = render_to_string('fantasy/partials/pitch.html', context, request=request)
+        market_html = render_to_string('fantasy/partials/player_list.html', context, request=request)
+        header_stats_html = f'<span id="user-budget" hx-swap-oob="true">{user_team.budget} M</span>'
+        
+        combined_response = f'{pitch_html}\n<div id="market-list" hx-swap-oob="true">{market_html}</div>\n{header_stats_html}'
+        return HttpResponse(combined_response)
 
     return redirect(f'/squad-builder/?league_id={active_league.id}')
 
@@ -521,10 +526,13 @@ def remove_player_from_squad(request, player_id):
 
     if request.headers.get('HX-Request'):
         context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
-        return render(request, 'fantasy/squad.html', context)
+        pitch_html = render_to_string('fantasy/partials/pitch.html', context, request=request)
+        market_html = render_to_string('fantasy/partials/player_list.html', context, request=request)
+        header_stats_html = f'<span id="user-budget" hx-swap-oob="true">{user_team.budget} M</span>'
+        
+        return HttpResponse(f'{pitch_html}\n<div id="market-list" hx-swap-oob="true">{market_html}</div>\n{header_stats_html}')
 
     return redirect(f'/squad-builder/?league_id={active_league.id}')
-
 
 @login_required
 def set_captain(request, player_id):
@@ -549,10 +557,10 @@ def set_captain(request, player_id):
 
     if request.headers.get('HX-Request'):
         context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
-        return render(request, 'fantasy/squad.html', context)
+        # عند تغيير الكابتن/نائب الكابتن: استبدال الملعب فقط دون لمس القوائم الجانبية أو السكريبتات
+        return render(request, 'fantasy/partials/pitch.html', context)
 
     return redirect(f'/squad-builder/?league_id={active_league.id}')
-
 
 @login_required
 def set_vice_captain(request, player_id):
@@ -576,7 +584,7 @@ def set_vice_captain(request, player_id):
 
     if request.headers.get('HX-Request'):
         context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
-        return render(request, 'fantasy/squad.html', context)
+        return render(request, 'fantasy/partials/pitch.html', context)
 
     return redirect(f'/squad-builder/?league_id={active_league.id}')
 
@@ -622,18 +630,11 @@ def swap_players(request, starter_id, sub_id):
                 squad.vice_captain = sub
 
             squad.substitutions_count = current_subs + 1
-
-            if squad.substitutions_count == 1:
-                messages.success(request, "تم إجراء التبديل الأول المجاني بنجاح!")
-            elif squad.substitutions_count == 2:
-                squad.transfers_cost = (squad.transfers_cost or 0) + 4
-                messages.warning(request, "تم إجراء التبديل الثاني وتطبيق خصم 4 نقاط من نقاط الجولة!")
-
             squad.save()
 
     if request.headers.get('HX-Request'):
         context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
-        return render(request, 'fantasy/squad.html', context)
+        return render(request, 'fantasy/partials/pitch.html', context)
 
     return redirect(f'/squad-builder/?league_id={active_league.id}')
 

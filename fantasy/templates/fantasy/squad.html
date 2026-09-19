@@ -2,30 +2,32 @@
 
 {% block content %}
 <style>
+    /* الكارت الأساسي للاعب داخل الملعب */
     .pitch-card {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        width: 70px !important;
+        width: 68px !important;
         position: relative !important;
+        transition: transform 0.2s ease;
     }
 
     @media (min-width: 400px) {
         .pitch-card {
-            width: 80px !important;
+            width: 78px !important;
         }
     }
 
     @media (min-width: 640px) {
         .pitch-card {
-            width: 100px !important;
+            width: 92px !important;
         }
     }
 
     .pitch-circle-wrapper {
         position: relative !important;
-        width: 44px !important;
-        height: 44px !important;
+        width: 42px !important;
+        height: 42px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -39,6 +41,7 @@
         }
     }
 
+    /* زر الحذف */
     .pitch-delete-btn {
         position: absolute !important;
         top: -3px !important;
@@ -61,6 +64,7 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
     }
 
+    /* الشارات والمؤشرات */
     .pitch-status-badge {
         position: absolute !important;
         top: -3px !important;
@@ -131,7 +135,7 @@
         color: #ffffff !important;
         font-size: 10px !important;
         font-weight: 800 !important;
-        padding: 1px 4px !important;
+        padding: 1.5px 4px !important;
         border-radius: 4px !important;
         width: 100% !important;
         text-align: center !important;
@@ -186,7 +190,7 @@
         </div>
         {% endif %}
 
-        <!-- الهيدر العلوي المُعدل -->
+        <!-- الهيدر العلوي -->
         <div class="w-full bg-[#240028] p-3 sm:p-4 rounded-t-xl grid grid-cols-3 items-center border-b-2 border-plGreen shadow-md gap-1">
             <div class="text-right">
                 <h2 class="text-sm sm:text-lg font-black text-white tracking-wide truncate">{{ user_team.name }}</h2>
@@ -243,7 +247,6 @@
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-bold">
-                
                 <!-- Triple Captain -->
                 <a href="{% url 'activate_chip' user_team.id 'TC' %}" 
                    class="p-2.5 rounded-xl border transition flex flex-col items-center justify-center gap-1 
@@ -255,9 +258,7 @@
                        bg-plDark text-gray-200 border-gray-700 hover:border-plGreen hover:text-plGreen
                    {% endif %}">
                     <span>🚀 Triple Captain</span>
-                    {% if user_team.triple_captain_used %}
-                        <span class="text-[9px] text-red-400 font-normal">(تم الاستخدام)</span>
-                    {% endif %}
+                    {% if user_team.triple_captain_used %}<span class="text-[9px] text-red-400 font-normal">(تم الاستخدام)</span>{% endif %}
                 </a>
 
                 <!-- Bench Boost -->
@@ -271,9 +272,7 @@
                        bg-plDark text-gray-200 border-gray-700 hover:border-plGreen hover:text-plGreen
                    {% endif %}">
                     <span>🪑 Bench Boost</span>
-                    {% if user_team.bench_boost_used %}
-                        <span class="text-[9px] text-red-400 font-normal">(تم الاستخدام)</span>
-                    {% endif %}
+                    {% if user_team.bench_boost_used %}<span class="text-[9px] text-red-400 font-normal">(تم الاستخدام)</span>{% endif %}
                 </a>
 
                 <!-- Wildcard -->
@@ -287,9 +286,7 @@
                        bg-plDark text-gray-200 border-gray-700 hover:border-plGreen hover:text-plGreen
                    {% endif %}">
                     <span>🃏 Wildcard</span>
-                    {% if user_team.wildcard_used %}
-                        <span class="text-[9px] text-red-400 font-normal">(تم الاستخدام)</span>
-                    {% endif %}
+                    {% if user_team.wildcard_used %}<span class="text-[9px] text-red-400 font-normal">(تم الاستخدام)</span>{% endif %}
                 </a>
 
                 <!-- Free Hit -->
@@ -303,17 +300,15 @@
                        bg-plDark text-gray-200 border-gray-700 hover:border-plGreen hover:text-plGreen
                    {% endif %}">
                     <span>🔥 Free Hit</span>
-                    {% if user_team.free_hit_used %}
-                        <span class="text-[9px] text-red-400 font-normal">(تم الاستخدام)</span>
-                    {% endif %}
+                    {% if user_team.free_hit_used %}<span class="text-[9px] text-red-400 font-normal">(تم الاستخدام)</span>{% endif %}
                 </a>
-
             </div>
         </div>
         {% endif %}
 
-        <!-- الملعب الأخضر -->
-        <div class="w-full bg-gradient-to-b from-emerald-800 via-green-700 to-emerald-800 rounded-b-xl p-2 sm:p-6 border-2 border-emerald-600 shadow-2xl relative min-h-[520px] sm:min-h-[580px] flex flex-col justify-between items-center overflow-hidden">
+        <!-- ⚽ الملعب الأخضر والتكتيك التفاعلي -->
+        <div class="w-full bg-gradient-to-b from-emerald-800 via-green-700 to-emerald-800 rounded-b-xl p-2 sm:p-5 border-2 border-emerald-600 shadow-2xl relative min-h-[540px] sm:min-h-[600px] flex flex-col justify-between items-center overflow-hidden">
+            <!-- خطوط الملعب التجميلية -->
             <div class="absolute inset-0 border-2 border-white/20 m-2 rounded-lg pointer-events-none"></div>
             <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-white/20 pointer-events-none"></div>
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white/20 rounded-full pointer-events-none"></div>
@@ -324,10 +319,11 @@
             <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-48 h-20 border-t-2 border-x-2 border-white/20 rounded-t-lg pointer-events-none"></div>
             <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-24 h-8 border-t-2 border-x-2 border-white/20 rounded-t-sm pointer-events-none"></div>
 
-            <div class="w-full z-10 h-full flex flex-col justify-between items-center py-2 gap-3 sm:gap-4 my-auto">
+            <div class="w-full z-10 h-full flex flex-col justify-between items-center py-2 gap-2 my-auto">
                 {% if starters %}
-                    <!-- 1️⃣ خط الهجوم (FWD) -->
-                    <div class="w-full flex justify-center items-center gap-1 sm:gap-8 flex-wrap">
+                    
+                    <!-- 1️⃣ خط الهجوم (FWD) - أعلى الملعب -->
+                    <div class="w-full flex justify-around items-center gap-2 max-w-xl mx-auto min-h-[100px]">
                         {% for player in fwd_list %}
                         <div class="pitch-card">
                             <div class="pitch-circle-wrapper">
@@ -349,7 +345,7 @@
                                 {% endif %}
 
                                 <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
-                                     class="w-full h-full p-1 cursor-pointer"
+                                     class="w-full h-full p-1 cursor-pointer hover:scale-105 transition"
                                      hx-get="{% url 'player_detail_modal' player.id %}"
                                      hx-target="#player-modal-content"
                                      data-bs-toggle="modal"
@@ -361,7 +357,7 @@
                                     {% endif %}
                                 </div>
 
-                                <span class="pitch-pos-badge">{{ player.main_category|default:player.position|default:"FWD" }}</span>
+                                <span class="pitch-pos-badge">FWD</span>
 
                                 {% if squad.captain == player %}
                                 <span class="pitch-captain-badge">C</span>
@@ -384,8 +380,8 @@
                         {% endfor %}
                     </div>
 
-                    <!-- 2️⃣ خط الوسط (MID) -->
-                    <div class="w-full flex justify-center items-center gap-1 sm:gap-8 flex-wrap">
+                    <!-- 2️⃣ خط الوسط (MID) - منتصف الملعب -->
+                    <div class="w-full flex justify-around items-center gap-2 max-w-2xl mx-auto min-h-[100px]">
                         {% for player in mid_list %}
                         <div class="pitch-card">
                             <div class="pitch-circle-wrapper">
@@ -407,7 +403,7 @@
                                 {% endif %}
 
                                 <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
-                                     class="w-full h-full p-1 cursor-pointer"
+                                     class="w-full h-full p-1 cursor-pointer hover:scale-105 transition"
                                      hx-get="{% url 'player_detail_modal' player.id %}"
                                      hx-target="#player-modal-content"
                                      data-bs-toggle="modal"
@@ -419,7 +415,7 @@
                                     {% endif %}
                                 </div>
 
-                                <span class="pitch-pos-badge">{{ player.main_category|default:player.position|default:"MID" }}</span>
+                                <span class="pitch-pos-badge">MID</span>
 
                                 {% if squad.captain == player %}
                                 <span class="pitch-captain-badge">C</span>
@@ -442,8 +438,8 @@
                         {% endfor %}
                     </div>
 
-                    <!-- 3️⃣ خط الدفاع (DEF) -->
-                    <div class="w-full flex justify-center items-center gap-1 sm:gap-8 flex-wrap">
+                    <!-- 3️⃣ خط الدفاع (DEF) - قبل المرمى -->
+                    <div class="w-full flex justify-around items-center gap-2 max-w-2xl mx-auto min-h-[100px]">
                         {% for player in def_list %}
                         <div class="pitch-card">
                             <div class="pitch-circle-wrapper">
@@ -465,7 +461,7 @@
                                 {% endif %}
 
                                 <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
-                                     class="w-full h-full p-1 cursor-pointer"
+                                     class="w-full h-full p-1 cursor-pointer hover:scale-105 transition"
                                      hx-get="{% url 'player_detail_modal' player.id %}"
                                      hx-target="#player-modal-content"
                                      data-bs-toggle="modal"
@@ -477,7 +473,7 @@
                                     {% endif %}
                                 </div>
 
-                                <span class="pitch-pos-badge">{{ player.main_category|default:player.position|default:"DEF" }}</span>
+                                <span class="pitch-pos-badge">DEF</span>
 
                                 {% if squad.captain == player %}
                                 <span class="pitch-captain-badge">C</span>
@@ -500,8 +496,8 @@
                         {% endfor %}
                     </div>
 
-                    <!-- 4️⃣ حارس المرمى (GK) -->
-                    <div class="w-full flex justify-center items-center">
+                    <!-- 4️⃣ حارس المرمى (GK) - أسفل الملعب -->
+                    <div class="w-full flex justify-center items-center min-h-[100px]">
                         {% for player in gk_list %}
                         <div class="pitch-card">
                             <div class="pitch-circle-wrapper">
@@ -523,7 +519,7 @@
                                 {% endif %}
 
                                 <div style="border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #ffffff; border: 2px solid {% if squad.captain == player %}#eab308{% elif squad.vice_captain == player %}#38bdf8{% else %}#ffffff{% endif %}; box-shadow: 0 4px 8px rgba(0,0,0,0.4); background: #1e1b4b; overflow: hidden;"
-                                     class="w-full h-full p-1 cursor-pointer"
+                                     class="w-full h-full p-1 cursor-pointer hover:scale-105 transition"
                                      hx-get="{% url 'player_detail_modal' player.id %}"
                                      hx-target="#player-modal-content"
                                      data-bs-toggle="modal"
@@ -531,11 +527,11 @@
                                     {% if player.team.logo %}
                                         <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain">
                                     {% else %}
-                                        <span>{{ player.main_category|default:player.position|default:"GK" }}</span>
+                                        <span>GK</span>
                                     {% endif %}
                                 </div>
 
-                                <span class="pitch-pos-badge">{{ player.main_category|default:player.position|default:"GK" }}</span>
+                                <span class="pitch-pos-badge">GK</span>
 
                                 {% if squad.captain == player %}
                                 <span class="pitch-captain-badge">C</span>
@@ -559,9 +555,9 @@
                     </div>
 
                 {% else %}
-                <div class="text-center py-16">
-                    <p class="text-emerald-100 font-bold text-sm bg-black/50 px-6 py-3 rounded-full border border-emerald-400/30">
-                        ⚽ الملعب فارغ.. اختر 6 لاعبين أساسيين
+                <div class="text-center py-20">
+                    <p class="text-emerald-100 font-bold text-sm bg-black/50 px-6 py-3 rounded-full border border-emerald-400/30 shadow-xl animate-bounce">
+                        ⚽ الملعب فارغ.. قم بإضافة 6 لاعبين أساسيين من السوق
                     </p>
                 </div>
                 {% endif %}
