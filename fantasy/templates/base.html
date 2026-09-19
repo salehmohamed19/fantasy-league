@@ -30,6 +30,37 @@
 </head>
 <body class="bg-plDark text-white font-sans min-h-screen flex flex-col selection:bg-plGreen selection:text-plDark">
 
+    <!-- 1. شريط التقدم العلوي (Top Progress Bar) -->
+    <div id="top-progress-bar" class="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-plGreen via-yellow-400 to-plPink z-[9999] transition-all duration-300 opacity-0 pointer-events-none -translate-x-full"></div>
+
+    <!-- 2. شاشة غطاء التحميل العائم (Full Screen Loading Overlay) مع كرة قدم تدور -->
+    <div id="global-loading-overlay" class="fixed inset-0 bg-plDark/80 backdrop-blur-md z-[9998] flex flex-col items-center justify-center transition-all duration-300 opacity-0 pointer-events-none">
+        <div class="bg-[#240028]/90 border border-plGreen/30 p-8 rounded-3xl shadow-[0_0_50px_rgba(0,255,133,0.15)] flex flex-col items-center gap-5 text-center max-w-xs mx-auto">
+            
+            <!-- كرة قدم تدور مع تأثير إضاءة نيون -->
+            <div class="relative w-16 h-16 flex items-center justify-center">
+                <!-- إضاءة خلفية خضراء متوهجة -->
+                <div class="absolute inset-0 bg-plGreen/20 rounded-full blur-xl animate-pulse"></div>
+                
+                <!-- حلقة خارجية متقطعة تدور حول الكرة -->
+                <div class="absolute -inset-2 rounded-full border-2 border-dashed border-plGreen/40 animate-[spin_4s_linear_infinite]"></div>
+
+                <!-- كرة القدم المتحركة مع ظل نيون -->
+                <div class="text-5xl animate-[spin_1.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(0,255,133,0.8)] select-none">
+                    ⚽
+                </div>
+            </div>
+
+            <!-- نص التنبيه ونقاط التحميل المتحركة -->
+            <div class="space-y-1">
+                <p class="text-white font-black text-base tracking-wide flex items-center justify-center gap-1">
+                    جاري التحميل<span class="animate-bounce">.</span><span class="animate-bounce [animation-delay:0.2s]">.</span><span class="animate-bounce [animation-delay:0.4s]">.</span>
+                </p>
+                <p class="text-xs text-gray-400">يرجى الانتظار لحين استجابة الخادم</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Navbar Header -->
     <header class="bg-[#240028] border-b-4 border-plGreen p-3 sm:p-4 shadow-xl sticky top-0 z-50">
         <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
@@ -111,7 +142,7 @@
                             <span>الملف الشخصي</span>
                         </a>
 
-                        <!-- 2️⃣ خيار أفضل اللاعبين والإحصائيات (الجديد) -->
+                        <!-- 2️⃣ خيار أفضل اللاعبين والإحصائيات -->
                         <a href="{% url 'player_leaderboard' %}" 
                            class="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-plGreen/10 hover:text-plGreen transition">
                             <span>🌟</span>
@@ -162,10 +193,10 @@
         </div>
     </header>
 
-    <!-- استدعاء شريط العداد التنازلي الشامل مباشرة من مجلد templates -->
+    <!-- استدعاء شريط العداد التنازلي الشامل -->
     {% include "deadline_timer.html" %}
 
-    <!-- شريط الرعاة الديناميكي أسفل العداد التنازلي مزود بزر الإغلاق -->
+    <!-- شريط الرعاة الديناميكي أسفل العداد التنازلي -->
     {% if current_league and current_league.sponsors.exists %}
     <section x-data="{ showSponsors: true }" 
              x-show="showSponsors" 
@@ -214,6 +245,55 @@
     <footer class="bg-[#240028] border-t border-gray-800 text-center text-xs text-gray-400 py-4 mt-auto">
         <p>جميع الحقوق محفوظة &copy; 2026 - مهندس / صالح محمد صالح</p>
     </footer>
+
+    <!-- Script التحكم في مؤشرات التحميل وإدارة الأحداث -->
+    <script>
+        const overlay = document.getElementById('global-loading-overlay');
+        const progressBar = document.getElementById('top-progress-bar');
+
+        function showLoader() {
+            if (overlay) {
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                overlay.classList.add('opacity-100');
+            }
+            if (progressBar) {
+                progressBar.classList.remove('opacity-0', '-translate-x-full');
+                progressBar.classList.add('opacity-100', 'translate-x-0', 'animate-pulse');
+            }
+        }
+
+        function hideLoader() {
+            if (overlay) {
+                overlay.classList.remove('opacity-100');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+            }
+            if (progressBar) {
+                progressBar.classList.remove('opacity-100', 'translate-x-0', 'animate-pulse');
+                progressBar.classList.add('opacity-0', '-translate-x-full');
+            }
+        }
+
+        // 1. التفاعل مع أحداث HTMX
+        document.body.addEventListener('htmx:beforeRequest', function(evt) {
+            const trigger = evt.detail.elt;
+            // تجاهل البحث المباشر في خانات النصوص لمنع إزعاج المستخدم عند الكتابة
+            if (trigger && (trigger.getAttribute('type') === 'text' || trigger.tagName === 'INPUT')) return;
+            showLoader();
+        });
+
+        document.body.addEventListener('htmx:afterRequest', hideLoader);
+        document.body.addEventListener('htmx:responseError', hideLoader);
+
+        // 2. التفاعل مع إرسال النماذج التقليدية
+        document.addEventListener('submit', function() {
+            showLoader();
+        });
+
+        // 3. التفاعل عند التنقل العادي بين الصفحات
+        window.addEventListener('beforeunload', function() {
+            showLoader();
+        });
+    </script>
 
 </body>
 </html>
