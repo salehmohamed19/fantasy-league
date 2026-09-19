@@ -1503,54 +1503,51 @@ def activate_chip(request, team_id, chip_code):
 
     return redirect('squad_builder')
 
+from django.db.models import Sum, Value
+from django.db.models.functions import Coalesce
 from django.shortcuts import render
 from django.core.paginator import Paginator
-from django.db.models import Q
 from .models import Player, RealTeam
 
 def player_leaderboard(request):
-    players = Player.objects.all().select_related('team')
+    # استخدام Coalesce يضمن إرجاع 0 بدلاً من None إذا لم تكن هناك نقاط أو إحصائيات بعد
+    players_list = Player.objects.annotate(
+        total_points=Coalesce(Sum('stats__points'), Value(0)),
+        goals=Coalesce(Sum('stats__goals'), Value(0)),
+        assists=Coalesce(Sum('stats__assists'), Value(0)),
+        clean_sheets=Coalesce(Sum('stats__clean_sheets'), Value(0)),
+        yellow_cards=Coalesce(Sum('stats__yellow_cards'), Value(0)),
+        red_cards=Coalesce(Sum('stats__red_cards'), Value(0)),
+    )
 
-    # 1. البحث باسم اللاعب
-    search_query = request.GET.get('search', '').strip()
+    # الفلترة والبحث
+    search_query = request.GET.get('search', '')
     if search_query:
-        players = players.filter(name__icontains=search_query)
+        players_list = players_list.filter(name__icontains=search_query)
 
-    # 2. الفلترة بالفريق (مع التحقق من أن القيمة رقمية لتجنب ValueError)
-    team_id = request.GET.get('team', '').strip()
-    if team_id and team_id.isdigit():
-        players = players.filter(team_id=int(team_id))
+    team_id = request.GET.get('team')
+    if team_id:
+        players_list = players_list.filter(team_id=team_id)
 
-    # 3. الفلترة بالمركز
-    position = request.GET.get('position', '').strip()
+    position = request.GET.get('position')
     if position:
-        players = players.filter(Q(position=position) | Q(main_category=position))
+        players_list = players_list.filter(position=position)
 
-    # 4. الترتيب
-    sort_by = request.GET.get('sort_by', '-total_points').strip()
-    allowed_sorts = ['-total_points', '-goals', '-assists', '-clean_sheets', '-price', 'price']
-    
-    if sort_by in allowed_sorts:
-        players = players.order_by(sort_by, '-total_points')
-    else:
-        players = players.order_by('-total_points')
+    # الترتيب
+    sort_by = request.GET.get('sort_by', '-total_points')
+    players_list = players_list.order_by(sort_by)
 
-    total_players_count = players.count()
-
-    # 5. التقسيم لصفحات (Pagination)
-    paginator = Paginator(players, 20)
+    # Paginator
+    paginator = Paginator(players_list, 25)
     page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    real_teams = RealTeam.objects.all()
+    players = paginator.get_page(page_number)
 
     context = {
-        'players': page_obj,
-        'real_teams': real_teams,
-        'total_players_count': total_players_count,
+        'players': players,
+        'real_teams': RealTeam.objects.all(),
+        'total_players_count': players_list.count(),
     }
-
-    return render(request, 'fantasy/player_leaderboard.html', context)
+    return render(request, 'player_leaderboard.html', context)
 
 def ping(request):
     return HttpResponse("OK", content_type="text/plain")
