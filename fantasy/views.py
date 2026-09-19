@@ -59,9 +59,7 @@ def calculate_and_save_squad_points(gameweek):
     stats = PlayerGameweekStat.objects.filter(gameweek=gameweek)
     player_points = {stat.player_id: stat.points for stat in stats}
     
-    # الاعتماد المباشر على حقل played=True لمعرفة من شارك فعلياً
     played_players = set(stats.filter(played=True).values_list('player_id', flat=True))
-
     squads = UserSquad.objects.filter(gameweek=gameweek).prefetch_related('starting_players', 'substitutes')
 
     for squad in squads:
@@ -70,10 +68,7 @@ def calculate_and_save_squad_points(gameweek):
         vice_captain_id = squad.vice_captain_id
         active_chip = getattr(squad, 'active_chip', 'NONE')
 
-        # التحقق مما إذا كان الكابتن شارك بالفعل أم لا
         captain_played = captain_id in played_players if captain_id else False
-        
-        # تحديد من سيأخذ مضاعفة النقاط
         effective_captain_id = captain_id if captain_played else (vice_captain_id if vice_captain_id in played_players else None)
 
         # 1. نقاط الأساسيين
@@ -112,7 +107,6 @@ def calculate_and_save_squad_points(gameweek):
         elif active_chip == 'FH':
             user_team.free_hit_used = True
 
-        # إعادة تجميع إجمالي النقاط للجولات المنشورة فقط
         total_pts = UserSquad.objects.filter(
             user_team=user_team,
             gameweek__is_published=True
@@ -124,7 +118,7 @@ def calculate_and_save_squad_points(gameweek):
 
 def update_player_prices_for_gameweek(gameweek):
     """تحديث أسعار اللاعبين تلقائياً بناءً على النقاط المسجلة"""
-    stats = PlayerGameweekStat.objects.filter(gameweek=gameweek)
+    stats = PlayerGameweekStat.objects.filter(gameweek=gameweek).select_related('player')
 
     for stat in stats:
         player = stat.player
@@ -147,17 +141,15 @@ def update_player_prices_for_gameweek(gameweek):
 
 def get_squad_builder_context(request, user_team, active_league, current_gameweek):
     """
-    دالة مساعدة مجمعة لبناء السياق (Context) لصفحة التشكيلة 
-    وحساب النقاط الإجمالية لكل اللاعبين المتاحين في سوق الانتقالات
+    دالة محسّنة وبسريعة لبناء Context التشكيلة بدون استعلامات N+1
     """
-    squad = UserSquad.objects.prefetch_related(
-        'starting_players__team',
-        'substitutes__team'
+    squad = UserSquad.objects.select_related('captain', 'vice_captain').prefetch_related(
+        Prefetch('starting_players', queryset=Player.objects.select_related('team')),
+        Prefetch('substitutes', queryset=Player.objects.select_related('team'))
     ).filter(user_team=user_team, gameweek=current_gameweek).first()
 
     if not squad:
         squad = UserSquad.objects.create(user_team=user_team, gameweek=current_gameweek)
-
         prev_squad = UserSquad.objects.filter(
             user_team=user_team,
             gameweek__number__lt=current_gameweek.number
@@ -172,7 +164,7 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
 
     all_squad_players = list(squad.starting_players.all()) + list(squad.substitutes.all())
 
-    # جلب الإحصائيات الخاصة بالجولات المنشورة فقط لتفادي جلب أرقام غير معتمدة
+    # جلب جميع الإحصائيات باستعلامين أساسيين فقط
     stats = PlayerGameweekStat.objects.filter(gameweek__league=active_league, gameweek__is_published=True)
     player_stats_map = {stat.player_id: stat for stat in stats if stat.gameweek_id == current_gameweek.id}
 
@@ -181,14 +173,10 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
 
     def attach_status_info(player):
         stat = player_stats_map.get(player.id)
-        # جلب حالة الكروت للجولة الحالية إن وجدت
         player.yellow_card = stat.yellow_card if stat else False
         player.red_card = stat.red_card if stat else False
-    
-        # إضافة إجمالي الكروت السابقة للموسم لسهولة عرضها للمستخدم
         player.total_yellows = getattr(player, 'total_yellow_cards', 0)
         player.total_reds = getattr(player, 'total_red_cards', 0)
-    
         player.is_suspended_now = player.is_suspended and getattr(player, 'suspended_matches_left', 0) > 0
         player.total_pts = player_total_points.get(player.id, 0)
 
@@ -199,7 +187,6 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
         stat = player_stats_map.get(player.id)
         pts = stat.points if stat else 0
         
-        # مضاعفة العرض بناءً على الكابتن أو Triple Captain
         multiplier = 3 if (getattr(squad, 'active_chip', 'NONE') == 'TC' and squad.captain_id == player.id) else (2 if squad.captain_id == player.id else 1)
         player.current_pts = pts * multiplier
         
@@ -243,11 +230,10 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
     if selected_position:
         pos_map = {
             'GK': ['GK'],
-            'DEF': ['CB', 'RB', 'LB', 'RWB', 'LWB'],
-            'MID': ['CDM', 'CM', 'CAM', 'RM', 'LM', 'RW', 'LW'],
-            'FWD': ['ST', 'CF']
+            'DEF': ['CB', 'RB', 'LB', 'RWB', 'LWB', 'DEF'],
+            'MID': ['CDM', 'CM', 'CAM', 'RM', 'LM', 'RW', 'LW', 'MID'],
+            'FWD': ['ST', 'CF', 'FWD']
         }
-
         if selected_position in pos_map:
             available_players = available_players.filter(position__in=pos_map[selected_position])
         else:
@@ -259,11 +245,8 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
     for player in available_players:
         attach_status_info(player)
 
-    # حساب العداد التنازلي لموعد إغلاق التعديل المباشر
     deadline = getattr(current_gameweek, 'deadline', None)
-    time_remaining = None
-    if deadline and deadline > timezone.now():
-        time_remaining = deadline - timezone.now()
+    time_remaining = (deadline - timezone.now()) if deadline and deadline > timezone.now() else None
 
     return {
         'user_team': user_team,
@@ -380,7 +363,6 @@ def squad_builder(request):
 @login_required
 @ratelimit(key='ip', rate='20/m', block=True)
 def add_player_to_squad(request, player_id):
-    """إضافة لاعب جديد للفريق وإدارة الميزانية بدون ضرب معادلات الأسعار"""
     player = get_object_or_404(Player, id=player_id)
     active_league = player.team.league
 
@@ -448,7 +430,6 @@ def add_player_to_squad(request, player_id):
 @login_required
 @ratelimit(key='ip', rate='10/m', block=True)
 def save_squad(request):
-    """حفظ التشكيلة مع التحقق من اشتراطات مراكز الأساسيين"""
     if request.method == "POST":
         league_id = request.POST.get('league_id') or request.GET.get('league_id')
         user_team = get_object_or_404(UserFantasyTeam, user=request.user, league_id=league_id)
@@ -466,7 +447,6 @@ def save_squad(request):
             if total_players < 8:
                 messages.error(request, "يجب إكمال التشكيلة (8 لاعبين: 6 أساسيين و 2 احتياطي) قبل الحفظ!")
             else:
-                # 1. إحصاء مراكز اللاعبين الأساسيين الـ 6
                 gk_count = 0
                 def_count = 0
                 mid_count = 0
@@ -478,7 +458,6 @@ def save_squad(request):
                 }
 
                 for player in starting_players:
-                    # جلب مركز اللاعب الرئيسي وتوحيد صيغته
                     pos = getattr(player, 'main_category', getattr(player, 'position', '')).upper()
                     
                     if pos in pos_map['GK']:
@@ -488,7 +467,6 @@ def save_squad(request):
                     elif pos in pos_map['MID']:
                         mid_count += 1
 
-                # 2. التحقق من تحقق شروط التشكيلة الأساسية
                 if gk_count != 1:
                     messages.error(request, "عفواً، يجب وجود حارس مرمى واحد فقط في التشكيلة الأساسية!")
                 elif def_count < 1:
@@ -496,7 +474,6 @@ def save_squad(request):
                 elif mid_count < 1:
                     messages.error(request, "عفواً، يجب وجود لاعب خط وسط واحد على الأقل في التشكيلة الأساسية!")
                 else:
-                    # في حال استيفاء جميع الشروط يتم الحفظ بنجاح
                     squad.is_saved = True
                     squad.save()
                     messages.success(request, "تم حفظ تشكيلتك وتثبيتها بنجاح لهذه الجولة!")
@@ -509,7 +486,6 @@ def save_squad(request):
 @login_required
 @ratelimit(key='ip', rate='20/m', block=True)
 def remove_player_from_squad(request, player_id):
-    """إزالة لاعب وإعادة ثمنه المباشر للميزانية بدون إفساد ميزانية بقية اللاعبين"""
     player = get_object_or_404(Player, id=player_id)
     active_league = player.team.league
 
@@ -540,7 +516,6 @@ def remove_player_from_squad(request, player_id):
 
             squad.save()
 
-            # إرجاع ثمن اللاعب فقط إلى الميزانية المتبقية
             user_team.budget += player.price
             user_team.save()
 
@@ -553,7 +528,6 @@ def remove_player_from_squad(request, player_id):
 
 @login_required
 def set_captain(request, player_id):
-    """تحديد الكابتن"""
     player = get_object_or_404(Player, id=player_id)
     active_league = player.team.league
 
@@ -582,7 +556,6 @@ def set_captain(request, player_id):
 
 @login_required
 def set_vice_captain(request, player_id):
-    """تحديد نائب الكابتن"""
     player = get_object_or_404(Player, id=player_id)
     active_league = player.team.league
 
@@ -611,7 +584,6 @@ def set_vice_captain(request, player_id):
 @login_required
 @ratelimit(key='ip', rate='15/m', block=True)
 def swap_players(request, starter_id, sub_id):
-    """حساب أي حركة تبديل بين الأساسي والاحتياطي فوراً وبشكل تراكمي"""
     starter = get_object_or_404(Player, id=starter_id)
     active_league = starter.team.league
 
@@ -629,12 +601,9 @@ def swap_players(request, starter_id, sub_id):
         sub = get_object_or_404(Player, id=sub_id)
 
         if squad.starting_players.filter(id=starter.id).exists() and squad.substitutes.filter(id=sub.id).exists():
-            
-            # تحديث الكائن من الداتابيز مباشرة
             squad.refresh_from_db(fields=['substitutions_count', 'transfers_cost'])
             current_subs = squad.substitutions_count or 0
 
-            # 1. منع الحركة الثالثة فوراً
             if current_subs >= 2:
                 err_msg = "عفواً! استنفذت الحد الأقصى للتبديلات لهذه الجولة (تبديلان فقط)."
                 if request.headers.get('HX-Request'):
@@ -642,7 +611,6 @@ def swap_players(request, starter_id, sub_id):
                 messages.error(request, err_msg)
                 return redirect(f'/squad-builder/?league_id={active_league.id}')
 
-            # 2. تنفيذ نقل اللاعبين
             squad.starting_players.remove(starter)
             squad.substitutes.remove(sub)
             squad.starting_players.add(sub)
@@ -653,7 +621,6 @@ def swap_players(request, starter_id, sub_id):
             elif squad.vice_captain == starter:
                 squad.vice_captain = sub
 
-            # 3. زيادة العداد وحساب الخصم والرسائل
             squad.substitutions_count = current_subs + 1
 
             if squad.substitutions_count == 1:
@@ -662,7 +629,6 @@ def swap_players(request, starter_id, sub_id):
                 squad.transfers_cost = (squad.transfers_cost or 0) + 4
                 messages.warning(request, "تم إجراء التبديل الثاني وتطبيق خصم 4 نقاط من نقاط الجولة!")
 
-            # حفظ التغيرات فوراً في قاعدة البيانات
             squad.save()
 
     if request.headers.get('HX-Request'):
@@ -707,10 +673,7 @@ def leaderboard(request):
     league_id = request.GET.get('league_id')
     all_leagues = League.objects.filter(is_active=True)
 
-    if league_id:
-        active_league = all_leagues.filter(id=league_id).first()
-    else:
-        active_league = all_leagues.first()
+    active_league = all_leagues.filter(id=league_id).first() if league_id else all_leagues.first()
 
     if not active_league:
         context = {
@@ -732,10 +695,7 @@ def leaderboard(request):
         stats = PlayerGameweekStat.objects.filter(gameweek__league=active_league, gameweek__is_published=True)
 
     stats_dict = {(stat.gameweek_id, stat.player_id): stat.points for stat in stats}
-    
-    played_players_set = set(
-        stats.filter(played=True).values_list('gameweek_id', 'player_id')
-    )
+    played_players_set = set(stats.filter(played=True).values_list('gameweek_id', 'player_id'))
 
     teams = UserFantasyTeam.objects.filter(league=active_league).select_related('user').prefetch_related(
         Prefetch(
@@ -759,7 +719,6 @@ def leaderboard(request):
                 continue
 
             squad = squads_by_gw.get(gw.id)
-
             if not squad:
                 squad = next((s for s in reversed(sorted_squads) if s.gameweek.number < gw.number), None)
 
@@ -791,7 +750,6 @@ def leaderboard(request):
                     transfers_cost = 0
 
                 gw_pts = max(0, gw_pts - transfers_cost)
-
                 total_pts += gw_pts
 
                 if current_gameweek and gw.id == current_gameweek.id:
@@ -821,7 +779,6 @@ def leaderboard(request):
 
 @staff_member_required(login_url='login')
 def enter_match_stats(request):
-    """شاشة مخصصة للـ Staff والـ Admins لإدخال إحصائيات اللاعبين في الجولة"""
     leagues = League.objects.filter(is_active=True)
     selected_league_id = request.GET.get('league_id')
     selected_gameweek_id = request.GET.get('gameweek_id')
@@ -897,7 +854,6 @@ def enter_match_stats(request):
 
 @staff_member_required
 def get_player_previous_yellow_cards(request):
-    """API لجلب عدد الكروت الصفراء السابقة للاعب قبل الجولة المحددة لتنبيه الأدمن"""
     player_id = request.GET.get('player_id')
     gameweek_id = request.GET.get('gameweek_id')
     
@@ -943,7 +899,7 @@ def close_current_gameweek(request):
 
     return redirect('leaderboard')
 
-# دي حاليا ملهاش لازمة لان اللي تحتها بتقوم بدورها
+
 @staff_member_required
 def open_next_gameweek(request):
     if request.method == "POST":
@@ -1225,9 +1181,7 @@ def view_closed_squad(request, gw_id):
 
     if squad:
         stats = PlayerGameweekStat.objects.filter(gameweek=gameweek)
-        # تخزين كائن الإحصائيات بالكامل بدلاً من النقاط فقط لجلب الكروت
         stats_dict = {st.player_id: st for st in stats}
-        
         played_players_set = set(stats.filter(played=True).values_list('player_id', flat=True))
 
         captain_id = squad.captain_id
@@ -1255,7 +1209,6 @@ def view_closed_squad(request, gw_id):
                 'is_captain': is_captain,
                 'is_vice': is_vice,
                 'is_effective_captain': is_effective,
-                # إضافة الكروت للأساسيين
                 'yellow_card': st.yellow_card if st else False,
                 'red_card': st.red_card if st else False,
             })
@@ -1267,7 +1220,6 @@ def view_closed_squad(request, gw_id):
                 'name': player.name,
                 'position_display': player.get_position_display(),
                 'points': st.points if (st and show_points) else "-",
-                # إضافة الكروت للبدلاء
                 'yellow_card': st.yellow_card if st else False,
                 'red_card': st.red_card if st else False,
             })
@@ -1287,7 +1239,6 @@ def view_closed_squad(request, gw_id):
 # ==========================================
 
 def player_detail_modal(request, player_id):
-    """عرض تفاصيل وإحصائيات اللاعب داخل نافذة منبثقة متوافق تماماً مع models.py"""
     player = get_object_or_404(Player, id=player_id)
     
     try:
@@ -1296,17 +1247,10 @@ def player_detail_modal(request, player_id):
         total_a = player.total_assists()
         matches_count = player.gameweek_stats.filter(played=True).count()
         clean_sheets_count = player.gameweek_stats.filter(clean_sheet=True).count()
-        # حساب الكروت التراكمية مباشرة من علاقة الإحصائيات
         yellow_cards_count = player.gameweek_stats.filter(yellow_card=True).count()
         red_cards_count = player.gameweek_stats.filter(red_card=True).count()
     except Exception:
-        total_pts = 0
-        total_g = 0
-        total_a = 0
-        matches_count = 0
-        clean_sheets_count = 0
-        yellow_cards_count = 0
-        red_cards_count = 0
+        total_pts, total_g, total_a, matches_count, clean_sheets_count, yellow_cards_count, red_cards_count = 0, 0, 0, 0, 0, 0, 0
 
     stats = {
         'total_points': total_pts,
@@ -1318,7 +1262,6 @@ def player_detail_modal(request, player_id):
         'red_cards': red_cards_count,
     }
 
-    next_matches = []
     try:
         next_matches = Match.objects.filter(
             Q(home_team=player.team) | Q(away_team=player.team),
@@ -1406,15 +1349,12 @@ def compare_players(request):
 
 
 def news_and_awards(request):
-    """عرض الأخبار والغيابات والجوائز وأبطال كافة الجولات تلقائياً مع دعم الجوائز اليدوية والعداد التنازلي"""
     now = timezone.now()
     
-    # 1. العداد التنازلي والـ Deadline للجولة القادمة
     next_gameweek = Gameweek.objects.filter(is_finished=False).order_by('number').first()
     deadline = getattr(next_gameweek, 'deadline', None) if next_gameweek else None
     time_remaining = (deadline - now) if deadline and deadline > now else None
     
-    # 2. المصابون والموقوفون والغيابات (من الموديل الرئيسي وحالات التحديث إن وجدت)
     injured_players = Player.objects.filter(is_injured=True).select_related('team')
     suspended_players = Player.objects.filter(is_suspended=True).select_related('team')
     
@@ -1424,7 +1364,6 @@ def news_and_awards(request):
             is_active=True
         ).exclude(chance_of_playing=100).select_related('player', 'player__team').order_by('chance_of_playing', '-updated_at')
 
-    # 3. بطل كل جولة مكتملة (تلقائيًا بناءً على أعلى النقاط)
     completed_gameweeks = Gameweek.objects.filter(is_finished=True, is_published=True).order_by('-number')
     weekly_heroes = []
 
@@ -1439,7 +1378,6 @@ def news_and_awards(request):
                 'performers': best_performers,
             })
 
-    # 4. أسطورة الجولة الأخيرة المكتملة
     last_finished_gw = completed_gameweeks.first()
     manager_of_the_week = None
     if last_finished_gw and weekly_heroes:
@@ -1452,7 +1390,6 @@ def news_and_awards(request):
                 'gameweek': last_finished_gw
             }
 
-    # 5. أفضل اللاعبين بكل مركز في الجولة الأخيرة
     top_performers = {}
     if last_finished_gw:
         positions = ['GK', 'DEF', 'MID', 'FWD']
@@ -1467,7 +1404,6 @@ def news_and_awards(request):
             if top_player:
                 top_performers[pos] = top_player
 
-    # 6. الجوائز اليدوية / المخصصة من الأدمن
     manual_awards = Award.objects.all().select_related('winner').order_by('-date_awarded') if Award else []
     prizes = LeaguePrize.objects.all() if LeaguePrize else []
 
@@ -1510,7 +1446,6 @@ def activate_chip(request, team_id, chip_code):
         gameweek=current_gw
     )
 
-    # التحقق من الاستخدام السالم في أي جولة سابقة للمستخدم
     already_used_in_squads = UserSquad.objects.filter(
         user_team=user_team,
         active_chip=chip_code
@@ -1545,12 +1480,9 @@ def activate_chip(request, team_id, chip_code):
     return redirect('squad_builder')
 
 
-
 def ping(request):
     return HttpResponse("OK", content_type="text/plain")
 
-from django.shortcuts import render
 
 def custom_csrf_failure_view(request, reason=""):
-    # يمكنك تسجيل سبب الخطأ في Log إن أردت
     return render(request, '403_csrf.html', status=403)

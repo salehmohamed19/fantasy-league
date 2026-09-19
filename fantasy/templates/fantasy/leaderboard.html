@@ -17,7 +17,7 @@
 
     <!-- لوحة تحكم الأدمن لإنهاء وفتح الجولات (تظهر للمشرفين فقط) -->
     {% if user.is_staff %}
-        <div class="mb-6 p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div class="mb-6 p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-lg">
             <div>
                 <h3 class="text-amber-400 font-black text-sm flex items-center gap-2">
                     ⚙️ لوحة إدارة الجولات (Admin Panel)
@@ -50,11 +50,11 @@
                 </form>
                 {% endif %}
 
-                <!-- زر إغلاق وفتح الجولة التالية / بدأ الجولة التالية -->
+                <!-- زر إغلاق وفتح الجولة التالية / بدء الجولة التالية -->
                 <form action="{% url 'close_and_advance_gameweek' %}" method="POST" onsubmit="return confirm('هل أنت متأكد من الانتقال إلى الجولة التالية؟');">
                     {% csrf_token %}
                     <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-4 py-2 rounded-lg font-black transition flex items-center gap-1.5 shadow-lg cursor-pointer">
-                        ⏩ بدأ الجولة التالية
+                        ⏩ بدء الجولة التالية
                     </button>
                 </form>
             </div>
