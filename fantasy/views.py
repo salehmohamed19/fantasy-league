@@ -368,24 +368,23 @@ from django_ratelimit.decorators import ratelimit
 
 def render_htmx_squad_response(request, user_team, active_league, current_gameweek):
     """
-    دالة مساعدة موحدة لإرجاع استجابة HTMX عند إضافة أو حذف لاعب
-    تقوم بتحديث التشكيلة والدكة والسوق والميزانية بنقرة واحدة بدون Refresh
+    دالة موحدة لإرجاع استجابة HTMX تحدّث التشكيلة وسوق اللاعبين والميزانية في نفس الوقت
     """
     context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
     
-    # 1. إرجاع قالب squad.html الرئيسي (سيتم اقتطاع #squad-container منه تلقائياً عبر hx-select في الواجهة)
+    # 1. رندر التشكيلة (الملعب)
     squad_html = render_to_string('fantasy/squad.html', context, request=request)
     
-    # 2. جزئية سوق اللاعبين المُحدثة
-    market_html = render_to_string('fantasy/partials/player_list.html', context, request=request)
+    # 2. رندر قائمة/سوق اللاعبين
+    player_list_html = render_to_string('fantasy/partials/player_list.html', context, request=request)
     
-    # 3. دمج الاستجابات باستخدام Out-Of-Band (OOB) Swaps
+    # 3. دمج الاستجابات مع عناصر OOB لتحديث الميزانية وسوق اللاعبين فوراً
     combined_response = f"""
     {squad_html}
-    <div id="player-market-list" hx-swap-oob="true">
-        {market_html}
-    </div>
     <span id="user-budget" hx-swap-oob="true">{user_team.budget}M</span>
+    <div id="player-market-list" hx-swap-oob="true">
+        {player_list_html}
+    </div>
     """
     return HttpResponse(combined_response)
 
