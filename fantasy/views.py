@@ -1516,19 +1516,20 @@ def player_leaderboard(request):
     if search_query:
         players = players.filter(name__icontains=search_query)
 
-    # 2. الفلترة بالفريق
-    team_id = request.GET.get('team', '')
-    if team_id:
-        players = players.filter(team_id=team_id)
+    # 2. الفلترة بالفريق (مع التحقق من أن القيمة رقمية لتجنب ValueError)
+    team_id = request.GET.get('team', '').strip()
+    if team_id and team_id.isdigit():
+        players = players.filter(team_id=int(team_id))
 
     # 3. الفلترة بالمركز
-    position = request.GET.get('position', '')
+    position = request.GET.get('position', '').strip()
     if position:
         players = players.filter(Q(position=position) | Q(main_category=position))
 
-    # 4. الترتيب (الافتراضي: أعلى إجمالي نقاط)
-    sort_by = request.GET.get('sort_by', '-total_points')
+    # 4. الترتيب
+    sort_by = request.GET.get('sort_by', '-total_points').strip()
     allowed_sorts = ['-total_points', '-goals', '-assists', '-clean_sheets', '-price', 'price']
+    
     if sort_by in allowed_sorts:
         players = players.order_by(sort_by, '-total_points')
     else:
@@ -1536,7 +1537,7 @@ def player_leaderboard(request):
 
     total_players_count = players.count()
 
-    # 5. التقسيم لصفحات (Pagination - 20 لاعب بكل صفحة)
+    # 5. التقسيم لصفحات (Pagination)
     paginator = Paginator(players, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -1550,7 +1551,6 @@ def player_leaderboard(request):
     }
 
     return render(request, 'fantasy/player_leaderboard.html', context)
-
 
 def ping(request):
     return HttpResponse("OK", content_type="text/plain")
