@@ -1513,17 +1513,12 @@ def activate_chip(request, team_id, chip_code):
 
 from django.shortcuts import render
 from django.core.paginator import Paginator
-from django.db.models import Sum, Value
-from django.db.models.functions import Coalesce
-from .models import Player, RealTeam
+from .models import Player, RealTeam  # أو اسم الموديل الخاص بالفرق لديك
 
 def player_leaderboard(request):
-    # حساب الإحصائيات التجميعية مع استبدال NULL بـ 0 لضمان صحة الترتيب
+    # استخدام annotate لحساب إجمالي نقاط اللاعب ديناميكياً من إحصائيات الجولات
     players_list = Player.objects.select_related('team').annotate(
-        total_pts=Coalesce(Sum('gameweek_stats__points'), Value(0)),
-        total_goals=Coalesce(Sum('gameweek_stats__goals_scored'), Value(0)),
-        total_assists=Coalesce(Sum('gameweek_stats__assists'), Value(0)),
-        total_clean_sheets=Coalesce(Sum('gameweek_stats__clean_sheets'), Value(0)),
+        total_pts=Sum('gameweek_stats__points')
     )
 
     # الفلترة بالاسم
@@ -1541,24 +1536,20 @@ def player_leaderboard(request):
     if position:
         players_list = players_list.filter(position=position)
 
-    # استقبال قيمة الترتيب
-    sort_by = request.GET.get('sort_by', '-total_points').strip()
+    # الترتيب الآمن
+    sort_by = request.GET.get('sort_by', '-total_pts')
     
-    # خريطة الترتيب الشاملة لكل الخيارات الموجودة في الـ HTML
+    # خريطة الترتيب لمنع الاستعلامات غير الصالحة
     allowed_sorts = {
         '-total_points': '-total_pts',
         'total_points': 'total_pts',
-        '-goals': '-total_goals',
-        '-assists': '-total_assists',
-        '-clean_sheets': '-total_clean_sheets',
         '-price': '-price',
         'price': 'price',
         'name': 'name',
     }
     
-    # تحديد الترتيب الفعلي مع إضافة ترتيب ثانوي لمنع تضارب النتائج المتساوية
     actual_sort = allowed_sorts.get(sort_by, '-total_pts')
-    players_list = players_list.order_by(actual_sort, '-id')
+    players_list = players_list.order_by(actual_sort)
 
     total_players_count = players_list.count()
 
