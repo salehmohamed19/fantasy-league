@@ -1511,14 +1511,14 @@ def activate_chip(request, team_id, chip_code):
 
     return redirect('squad_builder')
 
-from django.db.models import Sum, Value, IntegerField
-from django.db.models.functions import Coalesce
-from django.core.paginator import Paginator
 from django.shortcuts import render
+from django.core.paginator import Paginator
+from django.db.models import Sum, Value
+from django.db.models.functions import Coalesce
 from .models import Player, RealTeam
 
 def player_leaderboard(request):
-    # 1. تجميع الإحصائيات ديناميكياً واستبدال NULL بـ 0 لضمان صحة الترتيب
+    # حساب الإحصائيات التجميعية مع استبدال NULL بـ 0 لضمان صحة الترتيب
     players_list = Player.objects.select_related('team').annotate(
         total_pts=Coalesce(Sum('gameweek_stats__points'), Value(0)),
         total_goals=Coalesce(Sum('gameweek_stats__goals_scored'), Value(0)),
@@ -1526,24 +1526,25 @@ def player_leaderboard(request):
         total_clean_sheets=Coalesce(Sum('gameweek_stats__clean_sheets'), Value(0)),
     )
 
-    # 2. الفلترة بالاسم
+    # الفلترة بالاسم
     search_query = request.GET.get('search', '').strip()
     if search_query:
         players_list = players_list.filter(name__icontains=search_query)
 
-    # 3. الفلترة بالفريق
+    # الفلترة بالفريق
     team_id = request.GET.get('team', '').strip()
     if team_id and team_id.isdigit():
         players_list = players_list.filter(team_id=int(team_id))
 
-    # 4. الفلترة بالمركز
+    # الفلترة بالمركز
     position = request.GET.get('position', '').strip()
     if position:
         players_list = players_list.filter(position=position)
 
-    # 5. استقبال قيمة الترتيب وتحديث خريطة الترتيب لتشمل كل الخيارات الموجودة في الـ HTML
+    # استقبال قيمة الترتيب
     sort_by = request.GET.get('sort_by', '-total_points').strip()
     
+    # خريطة الترتيب الشاملة لكل الخيارات الموجودة في الـ HTML
     allowed_sorts = {
         '-total_points': '-total_pts',
         'total_points': 'total_pts',
@@ -1555,15 +1556,13 @@ def player_leaderboard(request):
         'name': 'name',
     }
     
-    # اختيار اسم الحقل الفعلي في الاستعلام
+    # تحديد الترتيب الفعلي مع إضافة ترتيب ثانوي لمنع تضارب النتائج المتساوية
     actual_sort = allowed_sorts.get(sort_by, '-total_pts')
-    
-    # تطبيق الترتيب وتحديد ترتيب ثانوي بالـ id لمنع تضارب النتائج المتساوية
     players_list = players_list.order_by(actual_sort, '-id')
 
     total_players_count = players_list.count()
 
-    # 6. الـ Pagination
+    # Pagination (عرض 20 لاعب في الصفحة)
     paginator = Paginator(players_list, 20)
     page_number = request.GET.get('page')
     players = paginator.get_page(page_number)
