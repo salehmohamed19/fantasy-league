@@ -551,7 +551,7 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
         UserProfile.objects.create(user=instance)
     else:
         UserProfile.objects.get_or_create(user=instance)
-    instance.profile.save()
+
 
 
 @receiver(post_save, sender=RealTeam)
