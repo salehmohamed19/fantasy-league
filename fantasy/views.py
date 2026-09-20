@@ -1026,6 +1026,12 @@ class CustomLoginView(LoginView):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # تحديد انتهاء مدة السيشن بعد 10 دقائق (600 ثانية) عند الخمول وعدم التفاعل
+        self.request.session.set_expiry(600)
+        return response
+
 
 @csrf_protect
 @ratelimit(key='ip', rate='5/m', block=True)
@@ -1038,6 +1044,8 @@ def register(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
+            # تحديد انتهاء السيشن بعد 10 دقائق من الخمول فور التسجيل
+            request.session.set_expiry(600)
             return redirect('squad_builder')
     else:
         form = UserCreationForm()

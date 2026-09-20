@@ -19,7 +19,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',  # تم تقديمه هنا
+    'django.contrib.staticfiles',
     
     'cloudinary_storage',
     'cloudinary',
@@ -82,11 +82,11 @@ USE_I18N = True
 USE_TZ = True
 
 # Cloudinary Configuration
-CCLOUDINARY_STORAGE = {
+CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
-    'STATIC_IMAGES_EXTENSIONS': [],  # منع الكلاوديناري من التعامل مع الامتدادات كـ static
+    'STATIC_IMAGES_EXTENSIONS': [],
 }
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
@@ -114,8 +114,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'https://*.onrender.com',
     'https://*.up.railway.app',
-    'https://fantazy-league.onrender.com'
-    
+    'https://fantazy-league.onrender.com',
 ]
 
 SESSION_COOKIE_SECURE = True
