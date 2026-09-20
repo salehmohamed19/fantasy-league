@@ -1513,47 +1513,47 @@ def activate_chip(request, team_id, chip_code):
 
 from django.shortcuts import render
 from django.core.paginator import Paginator
-from .models import Player, RealTeam
+from .models import Player, RealTeam  # أو اسم الموديل الخاص بالفرق لديك
 
 def player_leaderboard(request):
-    # جلب اللاعبين مباشرة مع اسم الفريق لتقليل الاستعلامات
-    players_list = Player.objects.select_related('team')
+    # استخدام annotate لحساب إجمالي نقاط اللاعب ديناميكياً من إحصائيات الجولات
+    players_list = Player.objects.select_related('team').annotate(
+        total_pts=Sum('gameweek_stats__points')
+    )
 
-    # 1. الفلترة بالاسم
+    # الفلترة بالاسم
     search_query = request.GET.get('search', '').strip()
     if search_query:
         players_list = players_list.filter(name__icontains=search_query)
 
-    # 2. الفلترة بالفريق
+    # الفلترة بالفريق
     team_id = request.GET.get('team', '').strip()
     if team_id and team_id.isdigit():
         players_list = players_list.filter(team_id=int(team_id))
 
-    # 3. الفلترة بالمركز
+    # الفلترة بالمركز
     position = request.GET.get('position', '').strip()
     if position:
         players_list = players_list.filter(position=position)
 
-    # 4. الترتيب حسب الحقول المخزنة مباشرة
-    sort_by = request.GET.get('sort_by', '-total_points').strip()
+    # الترتيب الآمن
+    sort_by = request.GET.get('sort_by', '-total_pts')
     
+    # خريطة الترتيب لمنع الاستعلامات غير الصالحة
     allowed_sorts = {
-        '-total_points': '-total_points',
-        'total_points': 'total_points',
-        '-goals': '-goals',
-        '-assists': '-assists',
-        '-clean_sheets': '-clean_sheets',
+        '-total_points': '-total_pts',
+        'total_points': 'total_pts',
         '-price': '-price',
         'price': 'price',
         'name': 'name',
     }
     
-    actual_sort = allowed_sorts.get(sort_by, '-total_points')
-    players_list = players_list.order_by(actual_sort, '-id')
+    actual_sort = allowed_sorts.get(sort_by, '-total_pts')
+    players_list = players_list.order_by(actual_sort)
 
     total_players_count = players_list.count()
 
-    # 5. الـ Pagination
+    # Pagination (عرض 20 لاعب في الصفحة)
     paginator = Paginator(players_list, 20)
     page_number = request.GET.get('page')
     players = paginator.get_page(page_number)
