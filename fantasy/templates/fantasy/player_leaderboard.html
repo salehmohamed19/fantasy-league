@@ -66,7 +66,7 @@
                 </select>
             </div>
 
-            <!-- الترتيب حسب (Sort By) -->
+            <!-- الترتيب حسب -->
             <div>
                 <label class="block text-xs font-bold text-gray-300 mb-1">ترتيب حسب:</label>
                 <select name="sort_by" class="w-full bg-[#1b001e] text-plGreen text-xs font-bold rounded-lg p-2.5 border border-purple-800/60 focus:border-plGreen outline-none transition cursor-pointer">
@@ -106,26 +106,22 @@
                         data-bs-toggle="modal"
                         data-bs-target="#playerModal">
                         
-                        <!-- الترتيب الديناميكي المظبوط مع الصفحات -->
+                        <!-- الترتيب -->
                         <td class="py-3 px-3 text-center font-black">
-                            {% with rank=players.start_index|default:1|add:forloop.counter0 %}
-                                {% if rank == 1 %}
-                                    <span class="w-6 h-6 rounded-full bg-yellow-500 text-black flex items-center justify-center mx-auto shadow-md">🥇</span>
-                                {% elif rank == 2 %}
-                                    <span class="w-6 h-6 rounded-full bg-gray-300 text-black flex items-center justify-center mx-auto shadow-md">🥈</span>
-                                {% elif rank == 3 %}
-                                    <span class="w-6 h-6 rounded-full bg-amber-700 text-white flex items-center justify-center mx-auto shadow-md">🥉</span>
-                                {% else %}
-                                    <span class="text-gray-400">#{{ rank }}</span>
-                                {% endif %}
-                            {% endwith %}
+                            {% if players.has_other_pages %}
+                                {% with rank=players.start_index|add:forloop.counter0 %}
+                                    {% if rank == 1 %}🥇{% elif rank == 2 %}🥈{% elif rank == 3 %}🥉{% else %}<span class="text-gray-400">#{{ rank }}</span>{% endif %}
+                                {% endwith %}
+                            {% else %}
+                                {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% else %}<span class="text-gray-400">#{{ forloop.counter }}</span>{% endif %}
+                            {% endif %}
                         </td>
 
                         <!-- اسم اللاعب والنادي -->
                         <td class="py-3 px-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-full bg-gray-900 border border-purple-600/50 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                    {% if player.team.logo %}
+                                    {% if player.team and player.team.logo %}
                                         <img src="{{ player.team.logo.url }}" alt="{{ player.team.name }}" class="w-full h-full object-contain p-0.5">
                                     {% else %}
                                         <span class="text-[9px] font-bold text-gray-300">{{ player.position }}</span>
@@ -133,7 +129,7 @@
                                 </div>
                                 <div class="truncate">
                                     <p class="font-extrabold text-white text-xs sm:text-sm hover:text-plGreen transition truncate">{{ player.name }}</p>
-                                    <p class="text-[10px] text-gray-400 font-normal">{{ player.team.name }}</p>
+                                    <p class="text-[10px] text-gray-400 font-normal">{{ player.team.name|default:"بدون فريق" }}</p>
                                 </div>
                             </div>
                         </td>
@@ -192,7 +188,7 @@
             </table>
         </div>
 
-        <!-- الترقيم والتنقل بين الصفحات (Pagination) -->
+        <!-- Pagination -->
         {% if players.has_other_pages %}
         <div class="p-4 bg-[#1b001e] border-t border-purple-800/40 flex items-center justify-between text-xs font-bold">
             <span class="text-gray-400">

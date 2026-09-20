@@ -1512,75 +1512,50 @@ def activate_chip(request, team_id, chip_code):
     return redirect('squad_builder')
 
 from django.shortcuts import render
-from django.db.models import Sum, Value, IntegerField
-from django.db.models.functions import Coalesce
 from django.core.paginator import Paginator
-from .models import Player, RealTeam
+from .models import Player, RealTeam  # أو اسم الموديل الخاص بالفرق لديك
 
 def player_leaderboard(request):
-    # استخدام gameweek_stats مع أسماء الحقول الصحيحة من models.py
-    players_list = Player.objects.annotate(
-        total_points=Coalesce(Sum('gameweek_stats__points'), Value(0), output_field=IntegerField()),
-        goals=Coalesce(Sum('gameweek_stats__goals'), Value(0), output_field=IntegerField()),
-        assists=Coalesce(Sum('gameweek_stats__assists'), Value(0), output_field=IntegerField()),
-        clean_sheets=Coalesce(Sum('gameweek_stats__clean_sheet'), Value(0), output_field=IntegerField()),
-        yellow_cards=Coalesce(Sum('gameweek_stats__yellow_card'), Value(0), output_field=IntegerField()),
-        red_cards=Coalesce(Sum('gameweek_stats__red_card'), Value(0), output_field=IntegerField()),
-    )
+    players_list = Player.objects.all().select_related('team')
 
-    # 1. البحث بالاسم
-    search_query = request.GET.get('search', '').strip()
+    # الفلترة بالاسم
+    search_query = request.GET.get('search', '')
     if search_query:
         players_list = players_list.filter(name__icontains=search_query)
 
-    # 2. التصفية حسب الفريق
-    team_id = request.GET.get('team')
-    if team_id and team_id.isdigit():
-        players_list = players_list.filter(team_id=int(team_id))
+    # الفلترة بالفريق
+    team_id = request.GET.get('team', '')
+    if team_id:
+        players_list = players_list.filter(team_id=team_id)
 
-    # 3. التصفية حسب المركز (سواء التفصيلي أو العام)
-    position = request.GET.get('position')
+    # الفلترة بالمركز
+    position = request.GET.get('position', '')
     if position:
-        if position == 'GK':
-            players_list = players_list.filter(position='GK')
-        elif position == 'DEF':
-            players_list = players_list.filter(position__in=['CB', 'RB', 'LB', 'RWB', 'LWB'])
-        elif position == 'MID':
-            players_list = players_list.filter(position__in=['CDM', 'CM', 'CAM', 'RM', 'LM', 'RW', 'LW'])
-        elif position == 'FWD':
-            players_list = players_list.filter(position__in=['ST', 'CF'])
-        else:
-            players_list = players_list.filter(position=position)
+        players_list = players_list.filter(position=position)
 
-    # 4. الترتيب الآمن
+    # الترتيب
     sort_by = request.GET.get('sort_by', '-total_points')
-    allowed_sorts = [
-        '-total_points', 'total_points',
-        '-goals', '-assists', '-clean_sheets',
-        '-price', 'price'
-    ]
-    if sort_by not in allowed_sorts:
-        sort_by = '-total_points'
+    if sort_by:
+        players_list = players_list.order_by(sort_by)
 
-    # إضافة id لضمان ثبات نتائج الـ Pagination
-    players_list = players_list.order_by(sort_by, 'id')
+    total_players_count = players_list.count()
 
-    # 5. الترقيم (Paginator)
-    paginator = Paginator(players_list, 25)
-    page_number = request.GET.get('page', 1)
-    
-    try:
-        players = paginator.get_page(page_number)
-    except Exception:
-        players = paginator.get_page(1)
+    # Pagination (عرض 20 لاعب في الصفحة)
+    paginator = Paginator(players_list, 20)
+    page_number = request.GET.get('page')
+    players = paginator.get_page(page_number)
+
+    real_teams = RealTeam.objects.all()
 
     context = {
         'players': players,
-        'real_teams': RealTeam.objects.all(),
-        'total_players_count': players_list.count(),
+        'real_teams': real_teams,
+        'total_players_count': total_players_count,
     }
 
+    # لاحظ كتابة المسار الصحيح المباشر داخل templates
     return render(request, 'fantasy/player_leaderboard.html', context)
+
 
 def ping(request):
     return HttpResponse("OK", content_type="text/plain")
