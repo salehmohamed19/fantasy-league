@@ -1504,20 +1504,27 @@ def activate_chip(request, team_id, chip_code):
 # ==========================================
 
 def player_leaderboard(request):
-    # الاستعلام أصلح خفيفاً جداً بدون annotate أو حسابات ثقيلة
-    players_list = Player.objects.select_related('team')
+    # 1. تجميع البيانات وتأمين عدم وجود None باستخدام Coalesce
+    players_list = Player.objects.select_related('team').annotate(
+        total_pts=Coalesce(Sum('gameweek_stats__points'), 0),
+        goals=Coalesce(Sum('gameweek_stats__goals'), 0),
+        assists=Coalesce(Sum('gameweek_stats__assists'), 0),
+        clean_sheets=Coalesce(Count('gameweek_stats', filter=Q(gameweek_stats__clean_sheet=True)), 0),
+        yellow_cards=Coalesce(Count('gameweek_stats', filter=Q(gameweek_stats__yellow_card=True)), 0),
+        red_cards=Coalesce(Count('gameweek_stats', filter=Q(gameweek_stats__red_card=True)), 0)
+    )
 
-    # 1. البحث بالاسم
+    # 2. البحث بالاسم
     search_query = request.GET.get('search', '').strip()
     if search_query:
         players_list = players_list.filter(name__icontains=search_query)
 
-    # 2. الفلترة بالفريق
+    # 3. الفلترة بالفريق الحقيقي
     team_id = request.GET.get('team', '').strip()
     if team_id and team_id.isdigit():
         players_list = players_list.filter(team_id=int(team_id))
 
-    # 3. الفلترة بالمركز
+    # 4. الفلترة بالمركز (تغطية كافة الخيارات التفصيلية بالموديل)
     position = request.GET.get('position', '').strip()
     if position:
         position_groups = {
@@ -1526,31 +1533,34 @@ def player_leaderboard(request):
             'MID': ['CDM', 'CM', 'CAM', 'RM', 'LM', 'RW', 'LW'],
             'FWD': ['ST', 'CF']
         }
+        
+        # إن اخترنا أحد المراكز الأربعة الرئيسية
         if position in position_groups:
             players_list = players_list.filter(position__in=position_groups[position])
         else:
+            # إذا أرسل المركز التفصيلي مباشرة
             players_list = players_list.filter(position=position)
 
-    # 4. الترتيب المباشر على الحقول المخزنة
+    # 5. الترتيب الدقيق لكافة الخيارات المتاحة بالـ HTML
     sort_by = request.GET.get('sort_by', '-total_points')
     
     allowed_sorts = {
-        '-total_points': '-total_points_accumulated',
-        'total_points': 'total_points_accumulated',
-        '-goals': '-total_goals_accumulated',
-        '-assists': '-total_assists_accumulated',
-        '-clean_sheets': '-total_clean_sheets_accumulated',
+        '-total_points': '-total_pts',
+        'total_points': 'total_pts',
+        '-goals': '-goals',
+        '-assists': '-assists',
+        '-clean_sheets': '-clean_sheets',
         '-price': '-price',
         'price': 'price',
         'name': 'name',
     }
     
-    actual_sort = allowed_sorts.get(sort_by, '-total_points_accumulated')
-    players_list = players_list.order_by(actual_sort, '-total_points_accumulated', 'id')
+    actual_sort = allowed_sorts.get(sort_by, '-total_pts')
+    players_list = players_list.order_by(actual_sort, '-total_pts', 'id')
 
     total_players_count = players_list.count()
 
-    # Pagination
+    # 6. التصفح والتقسيم (Pagination)
     paginator = Paginator(players_list, 20)
     page_number = request.GET.get('page')
     players = paginator.get_page(page_number)

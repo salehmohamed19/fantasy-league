@@ -1,10 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.db.models import Sum, Q, Count
-from django.db.models.functions import Coalesce
+from django.db.models import Sum
 from cloudinary.models import CloudinaryField
 
 
@@ -108,14 +107,6 @@ class Player(models.Model):
     injury_news = models.CharField(max_length=255, blank=True, null=True, verbose_name="تفاصيل الإصابة")
     chance_of_playing = models.PositiveIntegerField(default=100, verbose_name="نسبة احتمالية المشاركة %")
 
-    # الحقول الإحصائية المخزنة للتسريع (Denormalization)
-    total_points_accumulated = models.IntegerField(default=0, verbose_name="إجمالي النقاط المجمعة")
-    total_goals_accumulated = models.PositiveIntegerField(default=0, verbose_name="إجمالي الأهداف المجمعة")
-    total_assists_accumulated = models.PositiveIntegerField(default=0, verbose_name="إجمالي الأسيست المجمع")
-    total_clean_sheets_accumulated = models.PositiveIntegerField(default=0, verbose_name="إجمالي الكلين شيت المجمع")
-    total_yellow_cards_accumulated = models.PositiveIntegerField(default=0, verbose_name="إجمالي الكروت الصفراء")
-    total_red_cards_accumulated = models.PositiveIntegerField(default=0, verbose_name="إجمالي الكروت الحمراء")
-
     @property
     def main_category(self):
         if self.position == 'GK':
@@ -127,33 +118,13 @@ class Player(models.Model):
         else:
             return 'FWD'
 
-    def update_accumulated_stats(self):
-        """تحديث الإحصائيات التراكمية المجمعة للاعب"""
-        stats = self.gameweek_stats.aggregate(
-            pts=Coalesce(Sum('points'), 0),
-            g=Coalesce(Sum('goals'), 0),
-            a=Coalesce(Sum('assists'), 0),
-            cs=Coalesce(Count('id', filter=Q(clean_sheet=True)), 0),
-            yc=Coalesce(Count('id', filter=Q(yellow_card=True)), 0),
-            rc=Coalesce(Count('id', filter=Q(red_card=True)), 0)
-        )
+    @property
+    def total_yellow_cards(self):
+        return self.gameweek_stats.filter(yellow_card=True).count()
 
-        self.total_points_accumulated = stats['pts']
-        self.total_goals_accumulated = stats['g']
-        self.total_assists_accumulated = stats['a']
-        self.total_clean_sheets_accumulated = stats['cs']
-        self.total_yellow_cards_accumulated = stats['yc']
-        self.total_red_cards_accumulated = stats['rc']
-
-        # حفظ الحقول المحددة لمنع التعارض في الدورة
-        super().save(update_fields=[
-            'total_points_accumulated',
-            'total_goals_accumulated',
-            'total_assists_accumulated',
-            'total_clean_sheets_accumulated',
-            'total_yellow_cards_accumulated',
-            'total_red_cards_accumulated'
-        ])
+    @property
+    def total_red_cards(self):
+        return self.gameweek_stats.filter(red_card=True).count()
 
     def ownership_percentage(self):
         total_teams = UserFantasyTeam.objects.filter(league=self.team.league).count()
@@ -166,13 +137,13 @@ class Player(models.Model):
         return round((teams_with_player / total_teams) * 100, 1)
 
     def total_points(self):
-        return self.total_points_accumulated
+        return self.gameweek_stats.aggregate(Sum('points'))['points__sum'] or 0
 
     def total_goals(self):
-        return self.total_goals_accumulated
+        return self.gameweek_stats.aggregate(Sum('goals'))['goals__sum'] or 0
 
     def total_assists(self):
-        return self.total_assists_accumulated
+        return self.gameweek_stats.aggregate(Sum('assists'))['assists__sum'] or 0
 
     def process_gameweek_suspension(self):
         if self.suspended_matches_left > 0:
@@ -560,10 +531,3 @@ def sync_players_on_team_update(sender, instance, **kwargs):
     for player in players:
         player.save()
         PlayerGameweekStat.objects.filter(player=player).update(team=instance)
-
-
-@receiver([post_save, post_delete], sender=PlayerGameweekStat)
-def auto_update_player_accumulated_stats(sender, instance, **kwargs):
-    """تحديث الإحصائيات المجمعة للاعب تلقائياً فور تعديل أو إضافة إحصائية أي جولة"""
-    if instance.player:
-        instance.player.update_accumulated_stats()
