@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db.models import Sum
 from cloudinary.models import CloudinaryField
@@ -96,12 +96,6 @@ class Player(models.Model):
     position = models.CharField(max_length=5, choices=DETAILED_POSITION_CHOICES, verbose_name="المركز التفصيلي")
     price = models.DecimalField(max_digits=4, decimal_places=1, default=5.0, verbose_name="السعر")
 
-    # حقول مخزنة جاهزة للاستدعاء السريع دون حسابات متكررة
-    stored_total_points = models.IntegerField(default=0, verbose_name="إجمالي النقاط المخزنة")
-    stored_goals = models.PositiveIntegerField(default=0, verbose_name="إجمالي الأهداف المخزنة")
-    stored_assists = models.PositiveIntegerField(default=0, verbose_name="إجمالي التمريرات الحاسمة المخزنة")
-    stored_clean_sheets = models.PositiveIntegerField(default=0, verbose_name="إجمالي الشباك النظيفة المخزنة")
-
     # حالة العقوبات والإيقاف
     is_suspended = models.BooleanField(default=False, verbose_name="معاقب/موقوف")
     suspended_matches_left = models.PositiveIntegerField(default=0, verbose_name="المباريات المتبقية للإيقاف")
@@ -142,37 +136,14 @@ class Player(models.Model):
         ).values('user_team').distinct().count()
         return round((teams_with_player / total_teams) * 100, 1)
 
-    # دوال متوافقة: تُرجع القيمة المخزنة فوراً لضمان السرعة مع عدم كسر الكود القديم
     def total_points(self):
-        return self.stored_total_points
+        return self.gameweek_stats.aggregate(Sum('points'))['points__sum'] or 0
 
     def total_goals(self):
-        return self.stored_goals
+        return self.gameweek_stats.aggregate(Sum('goals'))['goals__sum'] or 0
 
     def total_assists(self):
-        return self.stored_assists
-
-    def total_clean_sheets(self):
-        return self.stored_clean_sheets
-
-    def update_cached_stats(self):
-        """دالة إعادة حساب الإحصائيات المخزنة للاعب وحفظها"""
-        stats = self.gameweek_stats.aggregate(
-            pts=Sum('points'),
-            g=Sum('goals'),
-            ast=Sum('assists'),
-            cs=Sum('clean_sheet')
-        )
-        self.stored_total_points = stats['pts'] or 0
-        self.stored_goals = stats['g'] or 0
-        self.stored_assists = stats['ast'] or 0
-        self.stored_clean_sheets = stats['cs'] or 0
-        self.save(update_fields=[
-            'stored_total_points', 
-            'stored_goals', 
-            'stored_assists', 
-            'stored_clean_sheets'
-        ])
+        return self.gameweek_stats.aggregate(Sum('assists'))['assists__sum'] or 0
 
     def process_gameweek_suspension(self):
         if self.suspended_matches_left > 0:
@@ -551,7 +522,7 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
         UserProfile.objects.create(user=instance)
     else:
         UserProfile.objects.get_or_create(user=instance)
-
+    instance.profile.save()
 
 
 @receiver(post_save, sender=RealTeam)
@@ -560,11 +531,3 @@ def sync_players_on_team_update(sender, instance, **kwargs):
     for player in players:
         player.save()
         PlayerGameweekStat.objects.filter(player=player).update(team=instance)
-
-
-@receiver(post_save, sender=PlayerGameweekStat)
-@receiver(post_delete, sender=PlayerGameweekStat)
-def update_player_totals_on_stat_change(sender, instance, **kwargs):
-    """تحديث الإحصائيات المخزنة للاعب تلقائياً فور تعديل أو إضافة أو حذف إحصائية جولة"""
-    if instance.player:
-        instance.player.update_cached_stats()
