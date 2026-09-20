@@ -1513,56 +1513,47 @@ def activate_chip(request, team_id, chip_code):
 
 from django.shortcuts import render
 from django.core.paginator import Paginator
-from django.db.models import Sum, Value
-from django.db.models.functions import Coalesce
 from .models import Player, RealTeam
 
 def player_leaderboard(request):
-    # 1. تجميع الإحصائيات مع استبدال القيم الفارغة (NULL) بـ 0 لضمان صحة الترتيب
-    players_list = Player.objects.select_related('team').annotate(
-        total_pts=Coalesce(Sum('gameweek_stats__points'), Value(0)),
-        total_goals=Coalesce(Sum('gameweek_stats__goals_scored'), Value(0)),
-        total_assists=Coalesce(Sum('gameweek_stats__assists'), Value(0)),
-        total_clean_sheets=Coalesce(Sum('gameweek_stats__clean_sheets'), Value(0)),
-    )
+    # جلب اللاعبين مباشرة مع اسم الفريق لتقليل الاستعلامات
+    players_list = Player.objects.select_related('team')
 
-    # 2. الفلترة بالاسم
+    # 1. الفلترة بالاسم
     search_query = request.GET.get('search', '').strip()
     if search_query:
         players_list = players_list.filter(name__icontains=search_query)
 
-    # 3. الفلترة بالفريق
+    # 2. الفلترة بالفريق
     team_id = request.GET.get('team', '').strip()
     if team_id and team_id.isdigit():
         players_list = players_list.filter(team_id=int(team_id))
 
-    # 4. الفلترة بالمركز
+    # 3. الفلترة بالمركز
     position = request.GET.get('position', '').strip()
     if position:
         players_list = players_list.filter(position=position)
 
-    # 5. استقبال قيمة الترتيب مع قيمة افتراضية متطابقة مع الـ HTML
+    # 4. الترتيب حسب الحقول المخزنة مباشرة
     sort_by = request.GET.get('sort_by', '-total_points').strip()
     
-    # 6. خريطة الترتيب الشاملة لربط كل option بالحقل المناسب في الاستعلام
     allowed_sorts = {
-        '-total_points': '-total_pts',           # الأعلى نقاطاً (مُجمع)
-        'total_points': 'total_pts',             # الأقل نقاطاً (مُجمع)
-        '-goals': '-total_goals',                # الأهداف المسجلة (مُجمع)
-        '-assists': '-total_assists',            # التمريرات الحاسمة (مُجمع)
-        '-clean_sheets': '-total_clean_sheets',  # الشباك النظيفة (مُجمع)
-        '-price': '-price',                      # السعر الأعلى (مباشر)
-        'price': 'price',                        # السعر الأقل (مباشر)
-        'name': 'name',                          # الاسم أبجدي (مباشر)
+        '-total_points': '-total_points',
+        'total_points': 'total_points',
+        '-goals': '-goals',
+        '-assists': '-assists',
+        '-clean_sheets': '-clean_sheets',
+        '-price': '-price',
+        'price': 'price',
+        'name': 'name',
     }
     
-    # تحديد الترتيب الفعلي مع إضافة id كترتيب ثانوي منعاً للتضارب عند تساوي القيم
-    actual_sort = allowed_sorts.get(sort_by, '-total_pts')
+    actual_sort = allowed_sorts.get(sort_by, '-total_points')
     players_list = players_list.order_by(actual_sort, '-id')
 
     total_players_count = players_list.count()
 
-    # 7. الـ Pagination
+    # 5. الـ Pagination
     paginator = Paginator(players_list, 20)
     page_number = request.GET.get('page')
     players = paginator.get_page(page_number)
