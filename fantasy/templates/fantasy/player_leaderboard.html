@@ -27,6 +27,7 @@
               hx-target="#players-table-container" 
               hx-select="#players-table-container"
               hx-swap="outerHTML"
+              hx-push-url="true"
               hx-trigger="change from:select, keyup changed delay:500ms from:input"
               class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-4">
             
@@ -105,17 +106,19 @@
                         data-bs-toggle="modal"
                         data-bs-target="#playerModal">
                         
-                        <!-- الترتيب -->
+                        <!-- الترتيب الديناميكي المظبوط مع الصفحات -->
                         <td class="py-3 px-3 text-center font-black">
-                            {% if forloop.counter == 1 %}
-                                <span class="w-6 h-6 rounded-full bg-yellow-500 text-black flex items-center justify-center mx-auto shadow-md">🥇</span>
-                            {% elif forloop.counter == 2 %}
-                                <span class="w-6 h-6 rounded-full bg-gray-300 text-black flex items-center justify-center mx-auto shadow-md">🥈</span>
-                            {% elif forloop.counter == 3 %}
-                                <span class="w-6 h-6 rounded-full bg-amber-700 text-white flex items-center justify-center mx-auto shadow-md">🥉</span>
-                            {% else %}
-                                <span class="text-gray-400">#{{ forloop.counter }}</span>
-                            {% endif %}
+                            {% with rank=players.start_index|default:1|add:forloop.counter0 %}
+                                {% if rank == 1 %}
+                                    <span class="w-6 h-6 rounded-full bg-yellow-500 text-black flex items-center justify-center mx-auto shadow-md">🥇</span>
+                                {% elif rank == 2 %}
+                                    <span class="w-6 h-6 rounded-full bg-gray-300 text-black flex items-center justify-center mx-auto shadow-md">🥈</span>
+                                {% elif rank == 3 %}
+                                    <span class="w-6 h-6 rounded-full bg-amber-700 text-white flex items-center justify-center mx-auto shadow-md">🥉</span>
+                                {% else %}
+                                    <span class="text-gray-400">#{{ rank }}</span>
+                                {% endif %}
+                            {% endwith %}
                         </td>
 
                         <!-- اسم اللاعب والنادي -->
@@ -193,26 +196,28 @@
         {% if players.has_other_pages %}
         <div class="p-4 bg-[#1b001e] border-t border-purple-800/40 flex items-center justify-between text-xs font-bold">
             <span class="text-gray-400">
-                عرض الصفحات {{ players.number }} من {{ players.paginator.num_pages }}
+                عرض الصفحة {{ players.number }} من {{ players.paginator.num_pages }}
             </span>
             <div class="flex items-center gap-1">
                 {% if players.has_previous %}
-                <button hx-get="?page={{ players.previous_page_number }}"
+                <button hx-get="{% url 'player_leaderboard' %}?page={{ players.previous_page_number }}"
                         hx-include="#leaderboard-filter-form"
                         hx-target="#players-table-container"
                         hx-select="#players-table-container"
                         hx-swap="outerHTML"
+                        hx-push-url="true"
                         class="px-3 py-1.5 bg-purple-900/60 hover:bg-purple-800 text-white rounded-lg transition">
                     السابق
                 </button>
                 {% endif %}
 
                 {% if players.has_next %}
-                <button hx-get="?page={{ players.next_page_number }}"
+                <button hx-get="{% url 'player_leaderboard' %}?page={{ players.next_page_number }}"
                         hx-include="#leaderboard-filter-form"
                         hx-target="#players-table-container"
                         hx-select="#players-table-container"
                         hx-swap="outerHTML"
+                        hx-push-url="true"
                         class="px-3 py-1.5 bg-plGreen hover:bg-emerald-400 text-plDark font-black rounded-lg transition">
                     التالي
                 </button>

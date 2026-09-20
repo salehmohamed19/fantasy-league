@@ -1580,7 +1580,7 @@ def player_leaderboard(request):
         'total_players_count': players_list.count(),
     }
 
-    return render(request, 'player_leaderboard.html', context)
+    return render(request, 'fantasy/player_leaderboard.html', context)
 
 def ping(request):
     return HttpResponse("OK", content_type="text/plain")
