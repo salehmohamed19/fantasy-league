@@ -16,6 +16,7 @@ from django.template.loader import render_to_string
 from django.core.paginator import Paginator
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
+from django.db.models.functions import Coalesce
 
 from .models import (
     League, RealTeam, Player, Gameweek, Match,
@@ -1503,37 +1504,63 @@ def activate_chip(request, team_id, chip_code):
 # ==========================================
 
 def player_leaderboard(request):
+    # 1. تجميع الإحصائيات مع الحسابات الصحيحة من الجولات المنشورة
     players_list = Player.objects.select_related('team').annotate(
-        total_pts=Sum('gameweek_stats__points')
+        total_pts=Coalesce(Sum('gameweek_stats__points', filter=Q(gameweek_stats__gameweek__is_published=True)), 0),
+        goals=Coalesce(Sum('gameweek_stats__goals', filter=Q(gameweek_stats__gameweek__is_published=True)), 0),
+        assists=Coalesce(Sum('gameweek_stats__assists', filter=Q(gameweek_stats__gameweek__is_published=True)), 0),
+        clean_sheets=Coalesce(Count('gameweek_stats', filter=Q(gameweek_stats__clean_sheet=True, gameweek_stats__gameweek__is_published=True)), 0),
+        yellow_cards=Coalesce(Count('gameweek_stats', filter=Q(gameweek_stats__yellow_card=True, gameweek_stats__gameweek__is_published=True)), 0),
+        red_cards=Coalesce(Count('gameweek_stats', filter=Q(gameweek_stats__red_card=True, gameweek_stats__gameweek__is_published=True)), 0)
     )
 
+    # 2. البحث بالاسم
     search_query = request.GET.get('search', '').strip()
     if search_query:
         players_list = players_list.filter(name__icontains=search_query)
 
+    # 3. الفلترة بالفريق
     team_id = request.GET.get('team', '').strip()
     if team_id and team_id.isdigit():
         players_list = players_list.filter(team_id=int(team_id))
 
+    # 4. إصلاح الفلترة حسب المركز (دعم المراكز الفرعية والرئيسية)
     position = request.GET.get('position', '').strip()
     if position:
-        players_list = players_list.filter(position=position)
+        pos_map = {
+            'GK': ['GK'],
+            'DEF': ['CB', 'RB', 'LB', 'RWB', 'LWB', 'DEF'],
+            'MID': ['CDM', 'CM', 'CAM', 'RM', 'LM', 'RW', 'LW', 'MID'],
+            'FWD': ['ST', 'CF', 'FWD']
+        }
+        if position in pos_map:
+            # البحث بالمراكز المتطابقة أو عبر main_category إن وجدت
+            players_list = players_list.filter(
+                Q(position__in=pos_map[position]) | Q(main_category=position)
+            )
+        else:
+            players_list = players_list.filter(position=position)
 
-    sort_by = request.GET.get('sort_by', '-total_pts')
+    # 5. إصلاح خيارات الترتيب لتشمل كافة الخيارات الموجودة في الواجهة
+    sort_by = request.GET.get('sort_by', '-total_points')
     
     allowed_sorts = {
         '-total_points': '-total_pts',
         'total_points': 'total_pts',
+        '-goals': '-goals',
+        '-assists': '-assists',
+        '-clean_sheets': '-clean_sheets',
         '-price': '-price',
         'price': 'price',
         'name': 'name',
     }
     
     actual_sort = allowed_sorts.get(sort_by, '-total_pts')
-    players_list = players_list.order_by(actual_sort)
+    players_list = players_list.order_by(actual_sort, '-total_pts')
 
     total_players_count = players_list.count()
 
+    # Pagination
     paginator = Paginator(players_list, 20)
     page_number = request.GET.get('page')
     players = paginator.get_page(page_number)
