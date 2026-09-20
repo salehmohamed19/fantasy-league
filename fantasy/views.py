@@ -12,6 +12,8 @@ from django.http import HttpResponse, JsonResponse
 from django.db.models import Sum, Prefetch, Q, Count, Max
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
+from django.template.loader import render_to_string
+from django.core.paginator import Paginator
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
 
@@ -37,6 +39,9 @@ from .forms import UserUpdateForm, ProfileUpdateForm, TeamNameUpdateForm
 
 def check_gameweek_lock(active_league):
     """دالة مساعدة لحماية التعديل وإغلاق الجولة"""
+    if not active_league:
+        return None, "لم يتم تحديد بطولة صالحة."
+
     current_gw = Gameweek.objects.filter(league=active_league, is_finished=False).order_by('number').first()
     if not current_gw:
         current_gw = Gameweek.objects.filter(league=active_league).order_by('-number').first()
@@ -51,7 +56,8 @@ def process_gameweek_suspensions(active_league):
     """تحديث الإيقافات لكل اللاعبين الموقوفين في الدوري عند نهاية الجولة"""
     suspended_players = Player.objects.filter(team__league=active_league, is_suspended=True)
     for player in suspended_players:
-        player.process_gameweek_suspension()
+        if hasattr(player, 'process_gameweek_suspension'):
+            player.process_gameweek_suspension()
 
 
 def calculate_and_save_squad_points(gameweek):
@@ -66,7 +72,7 @@ def calculate_and_save_squad_points(gameweek):
         gw_points = 0
         captain_id = squad.captain_id
         vice_captain_id = squad.vice_captain_id
-        active_chip = getattr(squad, 'active_chip', 'NONE')
+        active_chip = getattr(squad, 'active_chip', 'NONE') or 'NONE'
 
         captain_played = captain_id in played_players if captain_id else False
         effective_captain_id = captain_id if captain_played else (vice_captain_id if vice_captain_id in played_players else None)
@@ -143,7 +149,6 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
     """
     دالة عالية الأداء ومحسّنة لبناء Context التشكيلة واستجابة سريعة جداً.
     """
-    # 1. جلب التشكيلة الأساسية والبدلاء باستعلام واحد مجمع مع الفرق والرموز
     player_queryset = Player.objects.select_related('team')
     
     squad = UserSquad.objects.select_related('captain', 'vice_captain').prefetch_related(
@@ -170,7 +175,6 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
     all_squad_players = all_starters + all_subs
     squad_player_ids = {p.id for p in all_squad_players}
 
-    # 2. جلب إحصائيات الجولة الحالية بطلب واحد محدد فقط (عدم جلب إحصائيات كل الدوري)
     squad_ids_list = [p.id for p in all_squad_players]
     current_stats = PlayerGameweekStat.objects.filter(
         gameweek=current_gameweek,
@@ -194,7 +198,7 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
         player.current_pts = player.stat_points * multiplier
         starters_list.append(player)
 
-        pos = (player.main_category or player.position or '').upper()
+        pos = (getattr(player, 'main_category', None) or getattr(player, 'position', '') or '').upper()
         if pos == 'GK':
             gk_list.append(player)
         elif pos in ['DEF', 'CB', 'RB', 'LB', 'RWB', 'LWB']:
@@ -210,7 +214,6 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
         player.current_pts = player.stat_points
         subs_list.append(player)
 
-    # 3. جلب الفرق وسوق اللاعبين المفصل بطلب محدد ونظيف
     real_teams = RealTeam.objects.filter(league=active_league).only('id', 'name', 'logo')
 
     team_counts = Counter([p.team_id for p in all_squad_players])
@@ -241,7 +244,6 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
     deadline = getattr(current_gameweek, 'deadline', None)
     time_remaining = (deadline - timezone.now()) if deadline and deadline > timezone.now() else None
 
-    # حساب إحصائيات الموسم بشكل محدد لتخفيف التحميل
     season_stats = UserSquad.objects.filter(user_team=user_team, gameweek__is_published=True).aggregate(
         total_points=Sum('points_earned')
     )
@@ -260,7 +262,7 @@ def get_squad_builder_context(request, user_team, active_league, current_gamewee
         'mid_list': mid_list,
         'fwd_list': fwd_list,
         'real_teams': real_teams,
-        'available_players': available_players[:40], # تحديد حد أعلى للاستجابة السريعة
+        'available_players': available_players[:40],
         'disabled_team_ids': disabled_team_ids,
         'squad_player_ids': squad_player_ids,
         'selected_team_id': selected_team_id,
@@ -316,7 +318,6 @@ def join_league(request, league_id=None):
 # ==========================================
 # 2. بناء التشكيلة (Squad Builder)
 # ==========================================
-from django.template.loader import render_to_string
 
 @login_required
 @ratelimit(key='ip', rate='30/m', block=True)
@@ -349,7 +350,6 @@ def squad_builder(request):
 
     context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
 
-    # طلب HTMX لتصفية أو بحث سوق اللاعبين فقط (إرجاع قائمة اللاعبين دون القوائم الجانبية)
     if request.headers.get('HX-Request') and request.GET.get('target') == 'market':
         return render(request, 'fantasy/partials/player_list.html', context)
 
@@ -359,26 +359,15 @@ def squad_builder(request):
 # 3. عمليات التشكيلة (إضافة، حذف، حفظ، تبديل، كابتن، نائب كابتن)
 # ==========================================
 
-from django.shortcuts import get_object_or_404, redirect
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django_ratelimit.decorators import ratelimit
-
 def render_htmx_squad_response(request, user_team, active_league, current_gameweek):
     """
     دالة موحدة لإرجاع استجابة HTMX تحدّث التشكيلة وسوق اللاعبين والميزانية في نفس الوقت
     """
     context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
     
-    # 1. رندر التشكيلة (الملعب)
     squad_html = render_to_string('fantasy/squad.html', context, request=request)
-    
-    # 2. رندر قائمة/سوق اللاعبين
     player_list_html = render_to_string('fantasy/partials/player_list.html', context, request=request)
     
-    # 3. دمج الاستجابات مع عناصر OOB لتحديث الميزانية وسوق اللاعبين فوراً
     combined_response = f"""
     {squad_html}
     <span id="user-budget" hx-swap-oob="true">{user_team.budget}M</span>
@@ -415,7 +404,6 @@ def remove_player_from_squad(request, player_id):
             removed = True
 
         if removed:
-            # تعديل الكابتن والنائب عند حذف أحدهما
             if squad.captain == player:
                 squad.captain = squad.starting_players.first()
             if squad.vice_captain == player:
@@ -424,7 +412,6 @@ def remove_player_from_squad(request, player_id):
             squad.is_saved = False
             squad.save()
 
-            # إعادة سعر اللاعب للميزانية
             user_team.budget += player.price
             user_team.save()
 
@@ -454,7 +441,6 @@ def add_player_to_squad(request, player_id):
     current_subs = list(squad.substitutes.all())
     all_current_players = current_starters + current_subs
 
-    # القيود والشروط
     if player in all_current_players:
         if request.headers.get('HX-Request'):
             return HttpResponse("اللاعب موجود بالفعل في تشكيلتك!", status=400)
@@ -480,7 +466,6 @@ def add_player_to_squad(request, player_id):
         messages.error(request, "الميزانية المتبقية لا تكفي لشراء هذا اللاعب!")
         return redirect(f'/squad-builder/?league_id={active_league.id}')
 
-    # إضافة اللاعب (أساسي أو احتياطي)
     if len(current_starters) < 6:
         squad.starting_players.add(player)
         if not squad.captain:
@@ -522,9 +507,7 @@ def save_squad(request):
             if total_players < 8:
                 messages.error(request, "يجب إكمال التشكيلة (8 لاعبين: 6 أساسيين و 2 احتياطي) قبل الحفظ!")
             else:
-                gk_count = 0
-                def_count = 0
-                mid_count = 0
+                gk_count, def_count, mid_count = 0, 0, 0
 
                 pos_map = {
                     'GK': ['GK'],
@@ -557,6 +540,7 @@ def save_squad(request):
 
     return redirect('squad_builder')
 
+
 @login_required
 def set_captain(request, player_id):
     player = get_object_or_404(Player, id=player_id)
@@ -580,10 +564,10 @@ def set_captain(request, player_id):
 
     if request.headers.get('HX-Request'):
         context = get_squad_builder_context(request, user_team, active_league, current_gameweek)
-        # عند تغيير الكابتن/نائب الكابتن: استبدال الملعب فقط دون لمس القوائم الجانبية أو السكريبتات
         return render(request, 'fantasy/partials/pitch.html', context)
 
     return redirect(f'/squad-builder/?league_id={active_league.id}')
+
 
 @login_required
 def set_vice_captain(request, player_id):
@@ -753,7 +737,7 @@ def leaderboard(request):
                 gw_pts = 0
                 captain_id = squad.captain_id
                 vice_captain_id = squad.vice_captain_id
-                active_chip = getattr(squad, 'active_chip', 'NONE')
+                active_chip = getattr(squad, 'active_chip', 'NONE') or 'NONE'
 
                 captain_played = (gw.id, captain_id) in played_players_set if captain_id else False
                 effective_captain_id = captain_id if captain_played else (vice_captain_id if (gw.id, vice_captain_id) in played_players_set else None)
@@ -878,19 +862,23 @@ def enter_match_stats(request):
 
 @staff_member_required
 def get_player_previous_yellow_cards(request):
+    """إرجاع عدد البطاقات الصفراء السابقة للاعب قبل الجولة الحالية"""
     player_id = request.GET.get('player_id')
     gameweek_id = request.GET.get('gameweek_id')
     
-    if not player_id or not gameweek_id:
+    if not player_id or not gameweek_id or not str(player_id).isdigit() or not str(gameweek_id).isdigit():
         return JsonResponse({'previous_yellows': 0, 'has_yellow_before': False})
 
-    current_stat = PlayerGameweekStat.objects.filter(id=gameweek_id).first() if str(gameweek_id).isdigit() else None
-    
-    query = PlayerGameweekStat.objects.filter(player_id=player_id)
-    if current_stat:
-        query = query.filter(gameweek__number__lt=current_stat.gameweek.number)
+    target_gw = Gameweek.objects.filter(id=int(gameweek_id)).first()
+    if not target_gw:
+        return JsonResponse({'previous_yellows': 0, 'has_yellow_before': False})
 
-    previous_yellows = query.filter(yellow_card=True).count()
+    previous_yellows = PlayerGameweekStat.objects.filter(
+        player_id=int(player_id),
+        gameweek__league=target_gw.league,
+        gameweek__number__lt=target_gw.number,
+        yellow_card=True
+    ).count()
 
     return JsonResponse({
         'previous_yellows': previous_yellows,
@@ -1028,7 +1016,6 @@ class CustomLoginView(LoginView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        # تحديد انتهاء مدة السيشن بعد 10 دقائق (600 ثانية) عند الخمول وعدم التفاعل
         self.request.session.set_expiry(600)
         return response
 
@@ -1044,7 +1031,6 @@ def register(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            # تحديد انتهاء السيشن بعد 10 دقائق من الخمول فور التسجيل
             request.session.set_expiry(600)
             return redirect('squad_builder')
     else:
@@ -1218,7 +1204,7 @@ def view_closed_squad(request, gw_id):
 
         captain_id = squad.captain_id
         vice_captain_id = squad.vice_captain_id
-        active_chip = getattr(squad, 'active_chip', 'NONE')
+        active_chip = getattr(squad, 'active_chip', 'NONE') or 'NONE'
         captain_played = captain_id in played_players_set if captain_id else False
         effective_captain_id = captain_id if captain_played else (vice_captain_id if vice_captain_id in played_players_set else None)
 
@@ -1274,9 +1260,9 @@ def player_detail_modal(request, player_id):
     player = get_object_or_404(Player, id=player_id)
     
     try:
-        total_pts = player.total_points()
-        total_g = player.total_goals()
-        total_a = player.total_assists()
+        total_pts = player.total_points() if callable(getattr(player, 'total_points', None)) else 0
+        total_g = player.total_goals() if callable(getattr(player, 'total_goals', None)) else 0
+        total_a = player.total_assists() if callable(getattr(player, 'total_assists', None)) else 0
         matches_count = player.gameweek_stats.filter(played=True).count()
         clean_sheets_count = player.gameweek_stats.filter(clean_sheet=True).count()
         yellow_cards_count = player.gameweek_stats.filter(yellow_card=True).count()
@@ -1303,7 +1289,7 @@ def player_detail_modal(request, player_id):
         next_matches = []
 
     try:
-        ownership = player.ownership_percentage()
+        ownership = player.ownership_percentage() if callable(getattr(player, 'ownership_percentage', None)) else 0.0
     except Exception:
         ownership = 0.0
 
@@ -1347,7 +1333,7 @@ def compare_players(request):
             'clean_sheets': stats.filter(clean_sheet=True).count(),
             'yellow_cards': stats.filter(yellow_card=True).count(),
             'red_cards': stats.filter(red_card=True).count(),
-            'ownership': getattr(player, 'ownership_percentage', lambda: 0)(),
+            'ownership': player.ownership_percentage() if callable(getattr(player, 'ownership_percentage', None)) else 0,
             'next_matches': next_matches,
         }
 
@@ -1511,35 +1497,30 @@ def activate_chip(request, team_id, chip_code):
 
     return redirect('squad_builder')
 
-from django.shortcuts import render
-from django.core.paginator import Paginator
-from .models import Player, RealTeam  # أو اسم الموديل الخاص بالفرق لديك
+
+# ==========================================
+# 9. قائمة ترتيب اللاعبين والنظام العام
+# ==========================================
 
 def player_leaderboard(request):
-    # استخدام annotate لحساب إجمالي نقاط اللاعب ديناميكياً من إحصائيات الجولات
     players_list = Player.objects.select_related('team').annotate(
         total_pts=Sum('gameweek_stats__points')
     )
 
-    # الفلترة بالاسم
     search_query = request.GET.get('search', '').strip()
     if search_query:
         players_list = players_list.filter(name__icontains=search_query)
 
-    # الفلترة بالفريق
     team_id = request.GET.get('team', '').strip()
     if team_id and team_id.isdigit():
         players_list = players_list.filter(team_id=int(team_id))
 
-    # الفلترة بالمركز
     position = request.GET.get('position', '').strip()
     if position:
         players_list = players_list.filter(position=position)
 
-    # الترتيب الآمن
     sort_by = request.GET.get('sort_by', '-total_pts')
     
-    # خريطة الترتيب لمنع الاستعلامات غير الصالحة
     allowed_sorts = {
         '-total_points': '-total_pts',
         'total_points': 'total_pts',
@@ -1553,7 +1534,6 @@ def player_leaderboard(request):
 
     total_players_count = players_list.count()
 
-    # Pagination (عرض 20 لاعب في الصفحة)
     paginator = Paginator(players_list, 20)
     page_number = request.GET.get('page')
     players = paginator.get_page(page_number)
