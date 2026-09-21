@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib import messages
+from django.db.models import Sum
 from .models import (
     League, 
     LeagueSponsor,
@@ -18,7 +19,6 @@ from .models import (
 )
 
 
-# 🟢 Action لإنشاء سجلات إحصائيات جميع اللاعبين تلقائياً للجولة المحددة
 @admin.action(description='⚡ إنشاء سجلات إحصائيات جميع اللاعبين لهذه الجولة تلقائياً')
 def generate_gameweek_stats(modeladmin, request, queryset):
     created_count = 0
@@ -38,53 +38,68 @@ def generate_gameweek_stats(modeladmin, request, queryset):
 @admin.action(description='حساب نقاط الجولة وتحديث الترتيب وخصم مباريات الإيقاف')
 def calculate_gameweek_points(modeladmin, request, queryset):
     for gameweek in queryset:
-        # 1. جلب كافة إحصائيات ونقاط اللاعبين لهذه الجولة
+        # 1. تجميع نقاط اللاعبين واللاعبين الذين شاركوا
         stats = PlayerGameweekStat.objects.filter(gameweek=gameweek)
         player_points = {stat.player_id: stat.points for stat in stats}
-        
-        # الاعتماد على played=True لمعرفة من شارك فعلياً في الجولة
         played_players = set(stats.filter(played=True).values_list('player_id', flat=True))
 
-        # 2. حساب نقاط التشكيلات وتحديث الترتيب مع دعم الكابتن المباشر ونائب الكابتن
-        squads = UserSquad.objects.filter(gameweek=gameweek).prefetch_related('starting_players')
+        squads = UserSquad.objects.filter(gameweek=gameweek).prefetch_related('starting_players', 'substitutes')
         
         for squad in squads:
             total_squad_points = 0
             captain_id = squad.captain_id
             vice_captain_id = squad.vice_captain_id
 
+            # تحديد الكابتن الفعلي (الكابتن الأساسي لو شارك، أو النائب لو الكابتن لم يشارك وشارك النائب)
             captain_played = captain_id in played_players if captain_id else False
             effective_captain_id = captain_id if captain_played else (vice_captain_id if vice_captain_id in played_players else None)
 
+            # تحديد معامل الكابتن (3 في حالة Triple Captain و 2 في الحالة العادية)
+            captain_multiplier = 3 if getattr(squad, 'active_chip', None) == 'TC' else 2
+
+            # حساب نقاط اللاعبين الأساسيين
             for player in squad.starting_players.all():
                 p_points = player_points.get(player.id, 0)
                 if effective_captain_id and player.id == effective_captain_id:
-                    p_points *= 2
+                    p_points *= captain_multiplier
                 total_squad_points += p_points
+
+            # حساب نقاط دكة الاحتياط في حالة تفعيل خاصية Bench Boost (BB)
+            if getattr(squad, 'active_chip', None) == 'BB':
+                for sub_player in squad.substitutes.all():
+                    total_squad_points += player_points.get(sub_player.id, 0)
             
+            # خصم تكلفة التبديلات الإضافية
             transfers_cost = getattr(squad, 'transfers_cost', 0) or 0
             squad.points_earned = max(0, total_squad_points - transfers_cost)
             squad.save()
-            
+
+            # 2. تحديث إجمالي نقاط الفريق للمستخدم بناءً على كافة الجولات
             user_team = squad.user_team
-            all_squads = UserSquad.objects.filter(user_team=user_team, gameweek__is_published=True)
-            user_team.total_points = sum(s.points_earned for s in all_squads)
+            all_squads_points = UserSquad.objects.filter(
+                user_team=user_team
+            ).aggregate(Sum('points_earned'))['points_earned__sum'] or 0
+            
+            user_team.total_points = all_squads_points
             user_team.save()
 
-        # 3. خصم مباريات الإيقاف عبر دالة الموديل
+        # 3. معالجة خصم مباريات الإيقاف للاعبين مرة واحدة فقط لكل جولة
         suspended_players = Player.objects.filter(
             team__league=gameweek.league, 
             is_suspended=True, 
             suspended_matches_left__gt=0
         )
-        
         for player in suspended_players:
             player.process_gameweek_suspension()
 
-    messages.success(request, "تم حساب نقاط الجولة وتحديث الترتيب والإيقافات بنجاح!")
+        # تعليم الجولة كـ منشورة ومغلقة تلقائياً
+        gameweek.is_published = True
+        gameweek.is_finished = True
+        gameweek.save()
+
+    messages.success(request, "تم حساب نقاط الجولة (شاملة الخواص والكابتن)، وتحديث الترتيب والإيقافات بنجاح!")
 
 
-# 1️⃣ Inline لعرض إحصائيات الجولات داخل صفحة اللاعب نفسه
 class PlayerGameweekStatInlineForPlayer(admin.TabularInline):
     model = PlayerGameweekStat
     extra = 0
@@ -98,7 +113,6 @@ class PlayerGameweekStatInlineForPlayer(admin.TabularInline):
         formset.save_m2m()
 
 
-# 2️⃣ Inline لإدخال إحصائيات لاعبي الفريق دفعة واحدة من داخل صفحة الفريق
 class PlayerGameweekStatInlineForTeam(admin.TabularInline):
     model = PlayerGameweekStat
     extra = 0
@@ -120,7 +134,6 @@ class PlayerGameweekStatInlineForTeam(admin.TabularInline):
         formset.save_m2m()
 
 
-# 3️⃣ Inline لإدارة رعاة البطولة داخل صفحة البطولة
 class LeagueSponsorInline(admin.TabularInline):
     model = LeagueSponsor
     extra = 1

@@ -21,6 +21,7 @@ class League(models.Model):
         verbose_name = "بطولة / دوري"
         verbose_name_plural = "البطولات والدوريات"
 
+
 # 1.1 رعاة البطولة
 class LeagueSponsor(models.Model):
     league = models.ForeignKey(League, on_delete=models.CASCADE, related_name='sponsors', verbose_name="البطولة")
@@ -36,7 +37,8 @@ class LeagueSponsor(models.Model):
 
     def __str__(self):
         return f"{self.name} - ({self.league.name})"
-    
+
+
 # 2. الفرق الحقيقية
 class RealTeam(models.Model):
     league = models.ForeignKey(League, on_delete=models.CASCADE, related_name='teams', verbose_name="الدوري")
@@ -96,13 +98,11 @@ class Player(models.Model):
     position = models.CharField(max_length=5, choices=DETAILED_POSITION_CHOICES, verbose_name="المركز التفصيلي")
     price = models.DecimalField(max_digits=4, decimal_places=1, default=5.0, verbose_name="السعر")
 
-    # حالة العقوبات والإيقاف
     is_suspended = models.BooleanField(default=False, verbose_name="معاقب/موقوف")
     suspended_matches_left = models.PositiveIntegerField(default=0, verbose_name="المباريات المتبقية للإيقاف")
     has_yellow_card = models.BooleanField(default=False, verbose_name="يوجد إنذار سابق (أصفر)")
     has_red_card = models.BooleanField(default=False, verbose_name="حاصل على كارت أحمر / طرد")
 
-    # حالة الإصابة والأخبار السريعة
     is_injured = models.BooleanField(default=False, verbose_name="مصاب / مشكوك بمشاركته")
     injury_news = models.CharField(max_length=255, blank=True, null=True, verbose_name="تفاصيل الإصابة")
     chance_of_playing = models.PositiveIntegerField(default=100, verbose_name="نسبة احتمالية المشاركة %")
@@ -171,7 +171,6 @@ class Gameweek(models.Model):
     league = models.ForeignKey(League, on_delete=models.CASCADE, verbose_name="الدوري")
     number = models.PositiveIntegerField(verbose_name="رقم الجولة")
     
-    # حقول المواعيد
     start_date = models.DateTimeField(null=True, blank=True, verbose_name="موعد فتح التشكيلة (الخميس 16:00)")
     deadline = models.DateTimeField(null=True, blank=True, verbose_name="موعد إغلاق التشكيلة (السبت 16:00)")
     
@@ -185,7 +184,6 @@ class Gameweek(models.Model):
         verbose_name_plural = "الجولات"
 
     def set_fixed_schedule(self):
-        """تحديد موعد الإغلاق يوم السبت الساعة 16:00 والفتح يوم الخميس الساعة 16:00"""
         from datetime import timedelta
         from django.utils import timezone
 
@@ -205,24 +203,7 @@ class Gameweek(models.Model):
         if not self.deadline or not self.start_date:
             self.set_fixed_schedule()
 
-        is_newly_finished = False
-        if self.pk:
-            old_instance = Gameweek.objects.filter(pk=self.pk).first()
-            if old_instance and not old_instance.is_finished and self.is_finished:
-                is_newly_finished = True
-        elif self.is_finished:
-            is_newly_finished = True
-
         super().save(*args, **kwargs)
-
-        if is_newly_finished:
-            suspended_players = Player.objects.filter(
-                team__league=self.league,
-                is_suspended=True, 
-                suspended_matches_left__gt=0
-            )
-            for player in suspended_players:
-                player.process_gameweek_suspension()
 
     def __str__(self):
         return f"الجولة {self.number} - {self.league.name}"
@@ -268,27 +249,40 @@ class PlayerGameweekStat(models.Model):
         if not self.team_id or self.team != self.player.team:
             self.team = self.player.team
 
-        # 1. فحص تراكم الإنذارات: حساب الإنذارات السابقة للاعب بدون الجولة الحالية
-        previous_yellows = PlayerGameweekStat.objects.filter(
-            player=self.player, 
-            yellow_card=True
-        ).exclude(pk=self.pk).count()
+        player_updated = False
 
-        # إذا كان هذا الإنذار هو الإنذار الثالث (أي 2 سابقين + 1 حالي)
-        if self.yellow_card and (previous_yellows + 1) >= 3:
-            # تحويل الإنذار الثالث تلقائياً إلى إيقاف تراكمي
-            self.red_card = True
-            self.suspension_matches = 1
+        if self.suspension_matches > 0:
+            self.player.is_suspended = True
+            self.player.suspended_matches_left = self.suspension_matches
+            player_updated = True
 
-        # 2. حساب النقاط المباشرة للجولة
+        if self.red_card:
+            self.player.has_red_card = True
+            self.player.has_yellow_card = False
+            player_updated = True
+        elif self.yellow_card:
+            if self.player.has_yellow_card:
+                self.player.has_red_card = True
+                self.player.has_yellow_card = False
+                self.red_card = True
+                self.yellow_card = False
+                if self.suspension_matches == 0:
+                    self.suspension_matches = 1
+                    self.player.is_suspended = True
+                    self.player.suspended_matches_left = 1
+            else:
+                self.player.has_yellow_card = True
+            player_updated = True
+
+        if player_updated:
+            self.player.save()
+
         pts = 0
         category = self.player.main_category
 
-        # نقاط المشاركة
         if self.played:
             pts += 2
 
-        # نقاط الأهداف
         if category in ['GK', 'DEF']:
             pts += (self.goals * 6)
         elif category == 'MID':
@@ -296,24 +290,19 @@ class PlayerGameweekStat(models.Model):
         elif category == 'FWD':
             pts += (self.goals * 4)
 
-        # نقاط الأسيست
         pts += (self.assists * 3)
 
-        # نقاط الكلين شيت
         if self.clean_sheet:
             if category in ['GK', 'DEF']:
                 pts += 4
             elif category == 'MID':
                 pts += 1
 
-        # تصديات ضربات الجزاء
         if category == 'GK':
             pts += (self.penalties_saved * 5)
-
-        # الخصومات (ضربات الجزاء الضائعة / الأهداف العكسية / الكروت)
         pts -= (self.penalties_missed * 2)
+
         pts -= (self.own_goals * 2)
-        
         if self.yellow_card:
             pts -= 1
         if self.red_card:
@@ -321,17 +310,8 @@ class PlayerGameweekStat(models.Model):
 
         self.points = pts
 
-        # 3. تحديث حالة إيقاف اللاعب في موديل Player
-        if self.red_card or self.suspension_matches > 0:
-            self.player.is_suspended = True
-            if self.suspension_matches > 0:
-                self.player.suspended_matches_left = self.suspension_matches
-            else:
-                self.player.suspended_matches_left = 1
-            self.player.save(update_fields=['is_suspended', 'suspended_matches_left'])
-
         super().save(*args, **kwargs)
-        
+
     def __str__(self):
         return f"إحصائيات {self.player.name} - {self.gameweek} ({self.points} نقطة)"
 
@@ -415,7 +395,7 @@ class UserSquad(models.Model):
 
     def __str__(self):
         return f"تشكيلة {self.user_team.name} - {self.gameweek}"
-    
+
 
 # 9. مركز الأخبار والتحديثات العامة
 class NewsAndUpdate(models.Model):
@@ -511,10 +491,7 @@ class UserProfile(models.Model):
         verbose_name_plural = "الملفات الشخصية"
 
 
-# ==========================================
 # SIGNALS
-# ==========================================
-
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:
