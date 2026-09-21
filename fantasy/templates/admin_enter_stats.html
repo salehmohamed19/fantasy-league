@@ -25,7 +25,7 @@
         {% endif %}
     </div>
 
-    <!-- Filters Section -->
+    <!-- Filters Section (Dropdown Selectors) -->
     <div class="bg-[#240028] p-4 rounded-xl border border-gray-800 shadow-md">
         <form method="GET" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             
@@ -101,7 +101,7 @@
                     {% with player=item.player stat=item.stat %}
                     <tr class="hover:bg-purple-900/30 transition">
                         
-                        <!-- اسم اللاعب وتنبيه الكروت السابقة -->
+                        <!-- اسم اللاعب وتنبيه الكروت السابقة عبر Django -->
                         <td class="p-3 font-bold text-white whitespace-nowrap">
                             <div>{{ player.name }}</div>
                             {% if item.previous_yellows and item.previous_yellows > 0 %}
@@ -113,7 +113,7 @@
 
                         <!-- المركز -->
                         <td class="p-3 text-center text-gray-400 font-bold whitespace-nowrap">
-                            {{ player.get_main_category_display|default:player.main_category }}
+                            {{ player.get_position_display|default:player.position }}
                         </td>
 
                         <!-- شارك في المباراة -->
@@ -170,15 +170,14 @@
                                 <select name="suspension_reason_{{ player.id }}" class="w-full bg-plDark border border-gray-700 text-[11px] rounded p-1 outline-none text-gray-200">
                                     <option value="NONE" {% if stat.suspension_reason == 'NONE' %}selected{% endif %}>بدون إيقاف</option>
                                     <option value="YELLOW_CARDS" {% if stat.suspension_reason == 'YELLOW_CARDS' %}selected{% endif %}>تراكم إنذارات</option>
-                                    <option value="RED_CARD" {% if stat.suspension_reason == 'RED_CARD' %}selected{% endif %}>طرد مباشر / كروت</option>
-                                    <option value="DISCIPLINARY" {% if stat.suspension_reason == 'DISCIPLINARY' %}selected{% endif %}>عقوبة أخلاقية / سلوك</option>
-                                    <option value="CLUB_DECISION" {% if stat.suspension_reason == 'CLUB_DECISION' %}selected{% endif %}>قرار إداري / إيقاف نادٍ</option>
+                                    <option value="RED_CARD" {% if stat.suspension_reason == 'RED_CARD' %}selected{% endif %}>طرد مباشر</option>
+                                    <option value="DISCIPLINARY" {% if stat.suspension_reason == 'DISCIPLINARY' %}selected{% endif %}>عقوبة إدارية / لجنة انضباط</option>
                                 </select>
 
                                 <div class="flex gap-1">
                                     <input type="number" min="0" placeholder="مباريات" name="suspension_matches_{{ player.id }}" value="{{ stat.suspension_matches }}"
                                            class="w-16 bg-plDark border border-gray-700 rounded p-1 text-[11px] text-center outline-none">
-                                    <input type="text" placeholder="ملاحظات" name="suspension_notes_{{ player.id }}" value="{{ stat.suspension_notes|default:'' }}"
+                                    <input type="text" placeholder="ملاحظات" name="suspension_notes_{{ player.id }}" value="{{ stat.suspension_notes }}"
                                            class="w-full bg-plDark border border-gray-700 rounded p-1 text-[11px] outline-none">
                                 </div>
                             </div>
