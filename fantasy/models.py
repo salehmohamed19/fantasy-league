@@ -268,42 +268,27 @@ class PlayerGameweekStat(models.Model):
         if not self.team_id or self.team != self.player.team:
             self.team = self.player.team
 
-        # إدارة حالة العقوبات والكروت
-        player_updated = False
+        # 1. فحص تراكم الإنذارات: حساب الإنذارات السابقة للاعب بدون الجولة الحالية
+        previous_yellows = PlayerGameweekStat.objects.filter(
+            player=self.player, 
+            yellow_card=True
+        ).exclude(pk=self.pk).count()
 
-        if self.suspension_matches > 0:
-            self.player.is_suspended = True
-            self.player.suspended_matches_left = self.suspension_matches
-            player_updated = True
+        # إذا كان هذا الإنذار هو الإنذار الثالث (أي 2 سابقين + 1 حالي)
+        if self.yellow_card and (previous_yellows + 1) >= 3:
+            # تحويل الإنذار الثالث تلقائياً إلى إيقاف تراكمي
+            self.red_card = True
+            self.suspension_matches = 1
 
-        if self.red_card:
-            self.player.has_red_card = True
-            self.player.has_yellow_card = False
-            player_updated = True
-        elif self.yellow_card:
-            if self.player.has_yellow_card:
-                self.player.has_red_card = True
-                self.player.has_yellow_card = False
-                self.red_card = True
-                self.yellow_card = False
-                if self.suspension_matches == 0:
-                    self.suspension_matches = 1
-                    self.player.is_suspended = True
-                    self.player.suspended_matches_left = 1
-            else:
-                self.player.has_yellow_card = True
-            player_updated = True
-
-        if player_updated:
-            self.player.save()
-
-        # حساب النقاط
+        # 2. حساب النقاط المباشرة للجولة
         pts = 0
         category = self.player.main_category
 
+        # نقاط المشاركة
         if self.played:
             pts += 2
 
+        # نقاط الأهداف
         if category in ['GK', 'DEF']:
             pts += (self.goals * 6)
         elif category == 'MID':
@@ -311,19 +296,24 @@ class PlayerGameweekStat(models.Model):
         elif category == 'FWD':
             pts += (self.goals * 4)
 
+        # نقاط الأسيست
         pts += (self.assists * 3)
 
+        # نقاط الكلين شيت
         if self.clean_sheet:
             if category in ['GK', 'DEF']:
                 pts += 4
             elif category == 'MID':
                 pts += 1
 
+        # تصديات ضربات الجزاء
         if category == 'GK':
             pts += (self.penalties_saved * 5)
-        pts -= (self.penalties_missed * 2)
 
+        # الخصومات (ضربات الجزاء الضائعة / الأهداف العكسية / الكروت)
+        pts -= (self.penalties_missed * 2)
         pts -= (self.own_goals * 2)
+        
         if self.yellow_card:
             pts -= 1
         if self.red_card:
@@ -331,8 +321,17 @@ class PlayerGameweekStat(models.Model):
 
         self.points = pts
 
-        super().save(*args, **kwargs)
+        # 3. تحديث حالة إيقاف اللاعب في موديل Player
+        if self.red_card or self.suspension_matches > 0:
+            self.player.is_suspended = True
+            if self.suspension_matches > 0:
+                self.player.suspended_matches_left = self.suspension_matches
+            else:
+                self.player.suspended_matches_left = 1
+            self.player.save(update_fields=['is_suspended', 'suspended_matches_left'])
 
+        super().save(*args, **kwargs)
+        
     def __str__(self):
         return f"إحصائيات {self.player.name} - {self.gameweek} ({self.points} نقطة)"
 
