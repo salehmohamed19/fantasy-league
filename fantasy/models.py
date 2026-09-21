@@ -213,6 +213,7 @@ class Gameweek(models.Model):
 class PlayerGameweekStat(models.Model):
     SUSPENSION_REASONS = [
         ('NONE', 'لا يوجد'),
+        ('YELLOW_CARDS', 'تراكم إنذارات'), # إضافة الخيار المطلوب للمطابقة
         ('RED_CARD', 'طرد مباشر / كروت'),
         ('DISCIPLINARY', 'عقوبة أخلاقية / سلوك'),
         ('CLUB_DECISION', 'قرار إداري / إيقاف نادٍ'),
@@ -227,6 +228,8 @@ class PlayerGameweekStat(models.Model):
     assists = models.PositiveIntegerField(default=0, verbose_name="الأسيست (+3)")
     clean_sheet = models.BooleanField(default=False, verbose_name="كلين شيت")
     
+    # إضافة الحقل المفقود هنا لتجنب خطأ AttributeError
+    penalties_taken = models.PositiveIntegerField(default=0, verbose_name="ضربات جزاء مسجلة")
     penalties_saved = models.PositiveIntegerField(default=0, verbose_name="ضربات جزاء تصدى لها الحارس (+5)")
     penalties_missed = models.PositiveIntegerField(default=0, verbose_name="ضربات الجزاء الضائعة (-2)")
     own_goals = models.PositiveIntegerField(default=0, verbose_name="أهداف عكسية مرماها (-2)")
@@ -467,7 +470,7 @@ class Award(models.Model):
     winner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='awards', verbose_name="الفائز")
     description = models.TextField(blank=True, null=True, verbose_name="وصف الجائزة / المناسبة")
     icon = models.CharField(max_length=50, default="🏆", verbose_name="الإيموجي/الأيقونة")
-    date_awarded = models.DateField(auto_now_add=True, verbose_name="تاريخ التتويج")
+    date_awarded = models.DateField(auto_now_add=True, verbose_name="تاريخ التتويج") # تصحيح auto_now_add
 
     class Meta:
         ordering = ['-date_awarded']

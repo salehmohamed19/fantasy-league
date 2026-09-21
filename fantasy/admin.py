@@ -23,6 +23,7 @@ from .models import (
 def generate_gameweek_stats(modeladmin, request, queryset):
     created_count = 0
     for gameweek in queryset:
+        # التصفية الصحيحة للفرق التابعة لبطولة الجولة
         players = Player.objects.filter(team__league=gameweek.league)
         for player in players:
             stat, created = PlayerGameweekStat.objects.get_or_create(
@@ -47,8 +48,9 @@ def calculate_gameweek_points(modeladmin, request, queryset):
         
         for squad in squads:
             total_squad_points = 0
-            captain_id = squad.captain_id
-            vice_captain_id = squad.vice_captain_id
+            
+            captain_id = squad.captain_id if squad.captain else None
+            vice_captain_id = squad.vice_captain_id if squad.vice_captain else None
 
             # تحديد الكابتن الفعلي (الكابتن الأساسي لو شارك، أو النائب لو الكابتن لم يشارك وشارك النائب)
             captain_played = captain_id in played_players if captain_id else False
@@ -90,7 +92,8 @@ def calculate_gameweek_points(modeladmin, request, queryset):
             suspended_matches_left__gt=0
         )
         for player in suspended_players:
-            player.process_gameweek_suspension()
+            if hasattr(player, 'process_gameweek_suspension'):
+                player.process_gameweek_suspension()
 
         # تعليم الجولة كـ منشورة ومغلقة تلقائياً
         gameweek.is_published = True
@@ -176,14 +179,14 @@ class PlayerAdmin(admin.ModelAdmin):
     list_display = (
         'name', 
         'team', 
-        'position', 
+        'main_category', 
         'price', 
         'has_yellow_card', 
         'has_red_card', 
         'is_suspended', 
         'suspended_matches_left'
     )
-    list_filter = ('is_suspended', 'has_yellow_card', 'has_red_card', 'position', 'team__league', 'team')
+    list_filter = ('is_suspended', 'has_yellow_card', 'has_red_card', 'main_category', 'team__league', 'team')
     search_fields = ('name', 'team__name')
     list_editable = ('price', 'has_yellow_card', 'has_red_card')
     raw_id_fields = ('team',)
@@ -191,7 +194,7 @@ class PlayerAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('بيانات اللاعب الأساسية', {
-            'fields': ('name', 'team', 'position', 'price')
+            'fields': ('name', 'team', 'main_category', 'price')
         }),
         ('حالة الكروت والتأديب (تراكمية)', {
             'fields': (
@@ -247,7 +250,7 @@ class PlayerGameweekStatAdmin(admin.ModelAdmin):
             'fields': (
                 ('yellow_card', 'red_card'),
                 ('goals', 'assists'),
-                ('penalties_saved', 'penalties_missed', 'own_goals'),
+                ('penalties_taken', 'penalties_saved', 'penalties_missed', 'own_goals'),
                 'clean_sheet'
             ),
         }),
