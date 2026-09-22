@@ -232,7 +232,6 @@ class Gameweek(models.Model):
 class PlayerGameweekStat(models.Model):
     SUSPENSION_REASONS = [
         ('NONE', 'لا يوجد'),
-        ('YELLOW_CARDS', 'تراكم إنذارات'), # 👈 تمت إضافته ليتوافق مع التمبلت
         ('RED_CARD', 'طرد مباشر / كروت'),
         ('DISCIPLINARY', 'عقوبة أخلاقية / سلوك'),
         ('CLUB_DECISION', 'قرار إداري / إيقاف نادٍ'),
@@ -247,11 +246,10 @@ class PlayerGameweekStat(models.Model):
     assists = models.PositiveIntegerField(default=0, verbose_name="الأسيست (+3)")
     clean_sheet = models.BooleanField(default=False, verbose_name="كلين شيت")
     
-    penalties_taken = models.PositiveIntegerField(default=0, verbose_name="ركلات جزاء مسجلة") # 👈 تمت إضافته
     penalties_saved = models.PositiveIntegerField(default=0, verbose_name="ضربات جزاء تصدى لها الحارس (+5)")
     penalties_missed = models.PositiveIntegerField(default=0, verbose_name="ضربات الجزاء الضائعة (-2)")
     own_goals = models.PositiveIntegerField(default=0, verbose_name="أهداف عكسية مرماها (-2)")
-    
+
     yellow_card = models.BooleanField(default=False, verbose_name="كارت أصفر للجولة (-1)")
     red_card = models.BooleanField(default=False, verbose_name="كارت أحمر للجولة (-3)")
 
